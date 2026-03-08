@@ -1,42 +1,46 @@
 CXX      := g++
-CXXFLAGS := -std=c++17 -Wall -Wextra -Wpedantic
-SRC_DIR   := .
-BUILD_DIR := build
+CXXFLAGS := -std=c++17 -Wall -Wextra -Iinclude
+LDFLAGS  :=
 
-SRCS    := $(wildcard $(SRC_DIR)/*.cpp)
-OBJS    := $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRCS))
-TARGET  := $(BUILD_DIR)/phocoslink_parser
+BUILD  := build
+TARGET := $(BUILD)/mppt_parser
 
-DEBUG_FLAGS   := -g3 -O0 -DDEBUG -fsanitize=address,undefined
-RELEASE_FLAGS := -O2 -DNDEBUG -flto -s
+SRCS := src/main.cpp        \
+        src/space_parser.cpp \
+        src/eeprom_parser.cpp \
+        src/printer.cpp      \
+        src/json_builder.cpp
 
-FLAGS := $(DEBUG_FLAGS)
+OBJS := $(patsubst src/%.cpp, $(BUILD)/%.o, $(SRCS))
 
-.PHONY: all release run clean
+JSON_HPP := include/json.hpp
+JSON_URL := https://github.com/nlohmann/json/releases/download/v3.12.0/json.hpp
 
-all: FLAGS := $(DEBUG_FLAGS)
-all: $(TARGET)
+$(JSON_HPP):
+	curl -L $(JSON_URL) -o $@
 
-release: FLAGS := $(RELEASE_FLAGS)
+$(BUILD)/%.o: src/%.cpp $(JSON_HPP) | $(BUILD)
+
+.PHONY: all release debug clean
+
+all: release
+
+release: CXXFLAGS += -O2 -DNDEBUG
+release: LDFLAGS  += -s
 release: $(TARGET)
-	@echo "Release binary: $(TARGET)"
 
-$(TARGET): $(OBJS)
-	@mkdir -p $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) $(FLAGS) -o $@ $^
-	@echo "Built: $@"
+debug: CXXFLAGS += -O0 -g -fsanitize=address,undefined
+debug: LDFLAGS  += -fsanitize=address,undefined
+debug: $(TARGET)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
-	@mkdir -p $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) $(FLAGS) -c $< -o $@
+$(TARGET): $(OBJS) | $(BUILD)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $^ -o $@
 
-run: all
-ifndef LOG
-	$(error Usage: make run LOG=<logfile.txt>)
-endif
-	./$(TARGET) $(LOG)
+$(BUILD)/%.o: src/%.cpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BUILD):
+	mkdir -p $(BUILD)
 
 clean:
-	rm -rf $(BUILD_DIR)
-	@echo "Cleaned."
-
+	rm -rf $(BUILD)
