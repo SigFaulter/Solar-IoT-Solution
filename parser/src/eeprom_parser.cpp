@@ -28,13 +28,13 @@ static bool parseEepromConfig(const std::vector<uint8_t>& data, EepromConfig& cf
     };
 
     // Device type, byte 120 is the source for V2 vs V3
-    uint8_t type_byte = b(EEPROM_DEVICE_TYPE_OFFSET);
+    uint8_t type_byte = b(EEPROM_DEVICE_ID_OFFSET);
     cfg.hw_version = (type_byte == 0x52) ? 2 : 3;
 
     const char* dt = (type_byte == 0x52) ? "Solar Smart Controller V2"
                    : (type_byte == 0x56) ? "Solar Smart Controller V3"
                    : "Unknown";
-    cfg.device_type = dt;
+    cfg.device_id = dt;
 
     // Serial number: bytes 113 (MSB), 112 (LSB), 118 (manuf. month), all BCD
     // Format: MMSS-MM  (e.g. "0166-18")

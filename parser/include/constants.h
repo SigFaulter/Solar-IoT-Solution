@@ -20,7 +20,7 @@ constexpr size_t MIN_RESPONSE_LEN = 80;   // V2 lines ~142 chars, V3 ~205
 // All offsets are from the start of the dump, which begins at device address 0x1000
 // Derived from Kotlin EepromParser and DataLoggerParser
 //
-constexpr int EEPROM_DEVICE_TYPE_OFFSET          = 120;   // 0x52 = V2, 0x56 = V3
+constexpr int EEPROM_DEVICE_ID_OFFSET          = 120;   // 0x52 = V2, 0x56 = V3
 
 constexpr int EEPROM_BATTERY_TYPE_OFFSET         = 62;
 constexpr int EEPROM_CAPACITY_AH_OFFSET          = 95;    // u16 @ 95, 96

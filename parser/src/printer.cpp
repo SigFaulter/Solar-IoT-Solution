@@ -12,7 +12,7 @@ void printSystemState(
     const EepromConfig&    cfg,
     const char*            ts) {
     // Resolve display strings, EEPROM values take priority over banner header
-    const std::string& dev_type  = !cfg.device_type.empty()     ? cfg.device_type
+    const std::string& dev_type  = !cfg.device_id.empty()     ? cfg.device_id
                                  : !hdr.type.empty()             ? hdr.type
                                  : "Unknown";
 
@@ -122,7 +122,7 @@ void printEepromConfig(const EepromConfig& cfg) {
     printf(  "╚══════════════════════════════════════════╝\n");
 
     printf("\n[Identity]\n");
-    printf("  %-36s %s\n",  "Type",            cfg.device_type.c_str());
+    printf("  %-36s %s\n",  "Type",            cfg.device_id.c_str());
     printf("  %-36s %s\n",  "Serial Number",   cfg.serial_number.c_str());
     printf("  %-36s %s\n",  "Production Date", cfg.production_date.c_str());
 

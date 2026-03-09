@@ -186,7 +186,7 @@ struct MonthlyLog {
 // Parsed from the same '!' dump line as the datalogger data.
 struct EepromConfig {
     // Identity
-    std::string device_type;
+    std::string device_id;
     std::string serial_number;
     std::string production_date;
     int         hw_version = 3;    // 2 or 3, from EEPROM byte 120

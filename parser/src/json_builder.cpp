@@ -20,7 +20,7 @@ nlohmann::json buildJSON(
                                  : !hdr.serial_number.empty()   ? hdr.serial_number   : "";
     const std::string& prod_date = !cfg.production_date.empty() ? cfg.production_date
                                  : !hdr.production_date.empty() ? hdr.production_date : "";
-    const std::string& dev_type  = !cfg.device_type.empty()     ? cfg.device_type
+    const std::string& dev_type  = !cfg.device_id.empty()     ? cfg.device_id
                                  : !hdr.type.empty()             ? hdr.type
                                  : "Unknown";
 
