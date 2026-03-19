@@ -11,12 +11,6 @@ services:
       - mosquitto_log:/mosquitto/log
     networks:
       - mppt
-    healthcheck:
-      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-i", "healthcheck", "-W", "3"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
 
   influxdb:
     image: influxdb:2.7
@@ -27,19 +21,34 @@ services:
     environment:
       DOCKER_INFLUXDB_INIT_MODE: setup
       DOCKER_INFLUXDB_INIT_USERNAME: admin
-      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_ADMIN_PASSWORD:-admin}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_ADMIN_PASSWORD}
       DOCKER_INFLUXDB_INIT_ORG: mppt
-      DOCKER_INFLUXDB_INIT_BUCKET: solar
-      DOCKER_INFLUXDB_INIT_RETENTION: 0
+      DOCKER_INFLUXDB_INIT_BUCKET: solar       # Live telemetry
+      DOCKER_INFLUXDB_INIT_RETENTION: 0s       # Infinite retention
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN}
     volumes:
       - influxdb_data:/var/lib/influxdb2
     healthcheck:
-      test: ["CMD", "influx", "ping"]
+      test: ["CMD", "curl", "-sf", "http://localhost:8086/health"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
+    networks:
+      - mppt
+
+  influxdb-init:
+    image: influxdb:2.7
+    container_name: mppt_influxdb_init
+    restart: "no"
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    environment:
+      INFLUX_TOKEN: ${INFLUX_TOKEN}
+    volumes:
+      - ./influxdb/init:/init:ro
+    entrypoint: ["sh", "/init/init.sh"]
     networks:
       - mppt
 
@@ -51,19 +60,26 @@ services:
       - "1880:1880"
     environment:
       TZ: Africa/Casablanca
+      INFLUX_TOKEN: ${INFLUX_TOKEN}
       INFLUXDB_TOKEN: ${INFLUX_TOKEN}
       INFLUXDB_URL: http://influxdb:8086
       INFLUXDB_ORG: mppt
       INFLUXDB_BUCKET: solar
-      NODE_RED_USERNAME: admin
-      NODE_RED_PASSWORD: ${NODERED_PASSWORD}
+      INFLUXDB_BUCKET_HISTORY: solar_history
+      SMTP_SERVER: ${SMTP_SERVER}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      ALERT_EMAIL: ${ALERT_EMAIL}
     volumes:
       - ./nodered/data:/data
     depends_on:
-      mosquitto:
-        condition: service_healthy
       influxdb:
         condition: service_healthy
+      influxdb-init:
+        condition: service_completed_successfully
+      mosquitto:
+        condition: service_started
     networks:
       - mppt
 
@@ -97,8 +113,9 @@ services:
     ports:
       - "4000:3000"
     environment:
-      MQTT_EXPLORER_USERNAME: admin
-      MQTT_EXPLORER_PASSWORD: admin
+      MQTT_EXPLORER_USERNAME: ${MQTT_EXPLORER_USERNAME}
+      MQTT_EXPLORER_PASSWORD: ${MQTT_EXPLORER_PASSWORD}
+      MQTT_EXPLORER_SKIP_AUTH: ${MQTT_EXPLORER_SKIP_AUTH}
     volumes:
       - ./mqtt-explorer/settings.json:/app/data/settings.json
       - mqtt_explorer_data:/app/data

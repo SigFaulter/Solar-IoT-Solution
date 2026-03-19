@@ -4,7 +4,6 @@
 #include "lookups.h"
 
 #include <algorithm>
-#include <cstring>
 
 
 bool parsePhocosLine(const char* raw, size_t len, PhocosTelemetry& t) {
@@ -67,13 +66,13 @@ bool parsePhocosLine(const char* raw, size_t len, PhocosTelemetry& t) {
             case  8: t.pwm_counts           = static_cast<uint16_t>(v);       break;
             case 12: t.firmware_version     = static_cast<uint8_t>(v);        break;
 
-            // Field 13: loadState — parse full bitmask into LoadStatusFlags
+            // Field 13: loadState - parse full bitmask into LoadStatusFlags
             case 13:
                 t.load_state_raw = v;
                 t.load_flags     = LoadStatusFlags::parse(v);
                 break;
 
-            // Field 14: chargeState — source of charge mode and is_night
+            // Field 14: chargeState - source of charge mode and is_night
             case 14:
                 t.charge_state_raw = v;
                 t.charge_flags     = ChargeStatusFlags::parse(v);
@@ -86,7 +85,6 @@ bool parsePhocosLine(const char* raw, size_t len, PhocosTelemetry& t) {
                 t.battery_soc_pct = static_cast<uint8_t>(std::clamp(v, 0, 100));
                 break;
 
-            // Fields 18–19: temp values come through as ASCII strings in the protocol
             case 18: t.internal_temp_C  = v;                                   break;
             case 19: t.external_temp_C  = v;                                   break;
 
@@ -108,7 +106,7 @@ bool parsePhocosLine(const char* raw, size_t len, PhocosTelemetry& t) {
             case 38: t.load_power_W        = static_cast<uint16_t>(v);        break;
             case 39: t.led_power_W         = static_cast<uint16_t>(v);        break;
 
-            // Field 40: fault mask — V3 only, parse into FaultStatusFlags
+            // Field 40: fault mask - V3 only, parse into FaultStatusFlags
             case 40:
                 t.fault_status = static_cast<uint16_t>(v);
                 t.fault_flags  = FaultStatusFlags::parse(v);
@@ -129,53 +127,4 @@ bool parsePhocosLine(const char* raw, size_t len, PhocosTelemetry& t) {
     }
 
     return true;
-}
-
-
-void parseHeaderLine(const std::string& line, PhocosHeader& hdr) {
-    size_t s = line.find_first_not_of(" *\t");
-    if (s == std::string::npos) {
-        return;
-    }
-
-    std::string_view sv(line.c_str() + s, line.size() - s);
-
-    auto extract = [&](const char* key, std::string& dest) {
-        size_t klen = strlen(key);
-        if (sv.substr(0, klen) != key) {
-            return;
-        }
-
-        size_t v = sv.find_first_not_of(" \t:", klen);
-        if (v == std::string_view::npos) {
-            return;
-        }
-
-        std::string_view val = sv.substr(v);
-
-        while (!val.empty() && (val.back() == ' ' || val.back() == '\r' || val.back() == '\n')) {
-            val.remove_suffix(1);
-        }
-
-        dest = std::string(val);
-    };
-
-    // TODO remove in prod
-    // for local log parsing only
-    // V3 English header keys
-    extract("Charge Controller", hdr.type);
-    extract("Production date",   hdr.production_date);
-    extract("Serial number",     hdr.serial_number);
-
-    // V2 French header keys (log file is Latin-1 encoded)
-    extract("R\xe9gulateur de charge", hdr.type);
-    extract("Date de production",      hdr.production_date);
-    extract("Num\xe9ro de s\xe9rie",  hdr.serial_number);
-
-    if (!hdr.type.empty() && hdr.type.find("V2") != std::string::npos) {
-        hdr.hw_version = 2;
-    }
-    else if (!hdr.type.empty()) {
-        hdr.hw_version = 3;
-    }
 }

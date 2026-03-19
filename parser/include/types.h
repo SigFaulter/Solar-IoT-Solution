@@ -53,27 +53,64 @@ struct ChargeStatusFlags {
 
 // Parsed from Space line field 40 (V3 only)
 struct FaultStatusFlags {
-    bool pv_over_voltage     = false;  // bit 1
-    bool charge_over_current = false;  // bit 3
+    bool battery_over_voltage    = false;  // bit 0  (0x01)
+    bool pv_over_voltage         = false;  // bit 1  (0x02)
+    bool controller_over_temp    = false;  // bit 2  (0x04)
+    bool charge_over_current     = false;  // bit 3  (0x08)
+    bool lvd_active              = false;  // bit 4  (0x10)
+    bool over_discharge_current  = false;  // bit 5  (0x20)
+    bool battery_over_temp       = false;  // bit 6  (0x40)
+    bool battery_under_temp      = false;  // bit 7  (0x80)
 
     static FaultStatusFlags parse(int v) {
         FaultStatusFlags f;
-        f.pv_over_voltage     = (v & 0x02) != 0;
-        f.charge_over_current = (v & 0x08) != 0;
+        f.battery_over_voltage   = (v & 0x01) != 0;
+        f.pv_over_voltage        = (v & 0x02) != 0;
+        f.controller_over_temp   = (v & 0x04) != 0;
+        f.charge_over_current    = (v & 0x08) != 0;
+        f.lvd_active             = (v & 0x10) != 0;
+        f.over_discharge_current = (v & 0x20) != 0;
+        f.battery_over_temp      = (v & 0x40) != 0;
+        f.battery_under_temp     = (v & 0x80) != 0;
         return f;
     }
 };
 
 
-struct PhocosHeader {
-    std::string type;
-    std::string production_date;
-    std::string serial_number;
-    int         hw_version = 3;   // 2 or 3, inferred from type string
+struct DeviceSettings {
+    // Battery
+    int  battery_type_index      = 0;   // 0–2 (V2: AGM/Liquid/LiFePO4, V3: LFP temps)
+    int  capacity_ah             = 0;
+    int  lvd_voltage_mv          = 0;   // effective LVD (current or voltage, resolved)
+    int  lvd_level_current_mv    = 0;   // raw current-mode LVD register
+    int  lvd_level_voltage_mv    = 0;   // raw voltage-mode LVD register
+    bool lvd_mode_voltage        = false;
+
+    // Lighting
+    int  night_mode_index        = 0;   // 0=Off 1=D2D 2=DD 3=MN
+    int  evening_minutes_mn      = 0;
+    int  morning_minutes_mn      = 0;
+    int  night_threshold_mv      = 0;
+
+    // Dimming
+    int  night_mode_dimming_index   = 0;
+    int  evening_minutes_dimming_mn = 0;
+    int  morning_minutes_dimming_mn = 0;
+    int  dimming_pct             = 0;
+    int  base_dimming_pct        = 0;
+
+    // Advanced
+    bool dali_power_enable       = false;
+    bool alc_dimming_enable      = false;
+    bool reset_battery_opt       = false;   // special write-only flag
+
+    // Resolved hw context
+    int  hw_version              = 3;
+    bool load_disconnect_mode    = false;   // derived from load_state_raw bit 2
 };
 
 
-// One parsed Space Command response (a single poll from the controller).
+// One parsed Space Command response
 struct PhocosTelemetry {
     // General
     uint8_t  firmware_version   = 0;
@@ -191,43 +228,23 @@ struct EepromConfig {
     std::string production_date;
     int         hw_version = 3;    // 2 or 3, from EEPROM byte 120
 
-    // Battery
-    int         battery_type_index = 0;
-    std::string battery_type;
-    int         capacity_ah        = 0;
-    int         battery_op_days    = 0;
+    // Settings
+    DeviceSettings settings;
 
-    // LVD
-    int  lvd_voltage_mV   = 0;
-    bool lvd_mode_voltage = true;
+    // Display-friendly names
+    std::string battery_type;
+    std::string night_mode;
+    std::string night_mode_dimming;
+
+    // Read-only EEPROM counters
+    int battery_op_days = 0;
+    int operation_days  = 0;
 
     // Charge setpoints
     int    equalization_mV    = 0;
     int    boost_mV           = 0;
     int    float_mV           = 0;
     double temp_comp_mV_per_C = 0.0;
-
-    // Night
-    int night_threshold_mV = 0;
-    int operation_days     = 0;
-
-    // DALI / ALC
-    bool dali_active = false;
-    bool alc_dimming = false;
-
-    // Night mode
-    int         night_mode_index   = 0;
-    std::string night_mode;
-    int         evening_minutes_mn = 0;
-    int         morning_minutes_mn = 0;
-
-    // Dimming
-    int         night_mode_dimming_index   = 0;
-    std::string night_mode_dimming;
-    int         evening_minutes_dimming_mn = 0;
-    int         morning_minutes_dimming_mn = 0;
-    int         dimming_pct                = 0;
-    int         base_dimming_pct           = 0;
 };
 
 

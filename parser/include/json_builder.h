@@ -1,22 +1,34 @@
 #pragma once
 
 #include "types.h"
+#include "settings_parser.h"
 #include "json.hpp"
 
 #include <string>
 #include <vector>
 
 
-// Serialises all parsed data into a single JSON string for MQTT publishing.
-// MQTT topic: mppt/{serial_number}/state
-nlohmann::json buildJSON(
-    const PhocosHeader&             hdr,
-    const PhocosTelemetry&          t,
+// Telemetry snapshot
+// Topic: mppt/{zone}/{gw}/{serial}/state
+nlohmann::json buildTelemetryJSON(
+    const PhocosTelemetry& t,
+    const EepromConfig&    cfg,
+    const char*            timestamp
+);
+
+// Datalogger, published once in a while
+// Topic: mppt/{zone}/{gw}/{serial}/datalog
+nlohmann::json buildDataloggerJSON(
     const EepromConfig&             cfg,
     const DataloggerSummary&        summary,
-    const std::vector<DailyLog>&    daily_logs,
-    const std::vector<MonthlyLog>&  monthly_logs,
+    const std::vector<DailyLog>&    days,
+    const std::vector<MonthlyLog>&  months,
     const char*                     timestamp
 );
 
-void publishJSON(const nlohmann::json& j, const char* serial_number);
+// Settings published when settings have been parsed/changed
+// Topic: mppt/{zone}/{gw}/{serial}/settings
+nlohmann::json buildSettingsJSON(
+    const DeviceSettings& s,
+    const char*           timestamp
+);

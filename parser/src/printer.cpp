@@ -7,23 +7,12 @@
 
 
 void printSystemState(
-    const PhocosHeader&    hdr,
     const PhocosTelemetry& t,
     const EepromConfig&    cfg,
     const char*            ts) {
-    // Resolve display strings, EEPROM values take priority over banner header
-    const std::string& dev_type  = !cfg.device_id.empty()     ? cfg.device_id
-                                 : !hdr.type.empty()             ? hdr.type
-                                 : "Unknown";
-
-    const std::string& serial    = !cfg.serial_number.empty()   ? cfg.serial_number
-                                 : !hdr.serial_number.empty()   ? hdr.serial_number
-                                 : "N/A";
-
-    const std::string& prod_date = !cfg.production_date.empty() ? cfg.production_date
-                                 : !hdr.production_date.empty() ? hdr.production_date
-                                 : "N/A";
-
+    const std::string& dev_type  = !cfg.device_id.empty()     ? cfg.device_id  : "Unknown";
+    const std::string& serial    = !cfg.serial_number.empty()   ? cfg.serial_number : "N/A";
+    const std::string& prod_date = !cfg.production_date.empty() ? cfg.production_date : "N/A";
     const std::string& bat_type  = !cfg.battery_type.empty()    ? cfg.battery_type : "Unknown";
 
     printf("\n╔══════════════════════════════════════════╗\n");
@@ -80,8 +69,6 @@ void printSystemState(
     printf("  %-36s %s\n",    "Status",      ledStatusName(t.led_status));
     printf("  %-36s %s\n",    "DALI Active", t.dali_active ? "Yes" : "No");
 
-    // TODO confirm if this is the case
-    // remove the check as this is for debugging only
     if (t.hw_version == 2) {
         printf("  (LED, Fault, Energy fields not available on V2 firmware)\n");
     }
@@ -99,19 +86,27 @@ void printSystemState(
                   || t.load_flags.over_current
                   || t.load_flags.high_temp
                   || t.load_flags.low_temp
+                  || t.fault_flags.battery_over_voltage
                   || t.fault_flags.pv_over_voltage
-                  || t.fault_flags.charge_over_current;
+                  || t.fault_flags.controller_over_temp
+                  || t.fault_flags.charge_over_current
+                  || t.fault_flags.over_discharge_current
+                  || t.fault_flags.battery_over_temp
+                  || t.fault_flags.battery_under_temp;
 
     if (!any_fault) {
         printf("  None\n");
     }
     else {
-        if (t.load_flags.lvd_active)           { printf("  ! Low Voltage Disconnect\n"); }
-        if (t.load_flags.over_current)         { printf("  ! Load Over-Current\n"); }
-        if (t.load_flags.high_temp)            { printf("  ! High Temperature Protection\n"); }
-        if (t.load_flags.low_temp)             { printf("  ! Low Temperature Protection\n"); }
-        if (t.fault_flags.pv_over_voltage)     { printf("  ! PV Over-Voltage\n"); }
-        if (t.fault_flags.charge_over_current) { printf("  ! Charge Over-Current\n"); }
+        if (t.fault_flags.battery_over_voltage)                         { printf("  ! Battery Over-Voltage\n"); }
+        if (t.fault_flags.pv_over_voltage)                              { printf("  ! PV Over-Voltage\n"); }
+        if (t.fault_flags.controller_over_temp)                         { printf("  ! Controller Over-Temperature\n"); }
+        if (t.fault_flags.charge_over_current)                          { printf("  ! Charge Over-Current\n"); }
+        if (t.load_flags.lvd_active)                                    { printf("  ! Low Voltage Disconnect\n"); }
+        if (t.fault_flags.over_discharge_current)                       { printf("  ! Battery Over-Discharge Current\n"); }
+        if (t.load_flags.over_current)                                  { printf("  ! Load Over-Current\n"); }
+        if (t.fault_flags.battery_over_temp || t.load_flags.high_temp)  { printf("  ! Battery Over-Temperature\n"); }
+        if (t.fault_flags.battery_under_temp || t.load_flags.low_temp)  { printf("  ! Battery Under-Temperature\n"); }
     }
 }
 
@@ -122,37 +117,37 @@ void printEepromConfig(const EepromConfig& cfg) {
     printf(  "╚══════════════════════════════════════════╝\n");
 
     printf("\n[Identity]\n");
-    printf("  %-36s %s\n",  "Type",            cfg.device_id.c_str());
+    printf("  %-36s %s\n",  "Device ID",            cfg.device_id.c_str());
     printf("  %-36s %s\n",  "Serial Number",   cfg.serial_number.c_str());
     printf("  %-36s %s\n",  "Production Date", cfg.production_date.c_str());
 
     printf("\n[Battery Configuration]\n");
     printf("  %-36s %s\n",     "Type",                  cfg.battery_type.c_str());
-    printf("  %-36s %u Ah\n",  "Capacity",              cfg.capacity_ah);
+    printf("  %-36s %u Ah\n",  "Capacity",              cfg.settings.capacity_ah);
     printf("  %-36s %u Days\n","Battery Op. Time",      cfg.battery_op_days);
-    printf("  %-36s %.3f V\n", "LVD Voltage",           cfg.lvd_voltage_mV / 1000.0f);
-    printf("  %-36s %s\n",     "LVD Mode",              cfg.lvd_mode_voltage ? "Voltage" : "Current");
+    printf("  %-36s %.3f V\n", "LVD Voltage",           cfg.settings.lvd_voltage_mv / 1000.0f);
+    printf("  %-36s %s\n",     "LVD Mode",              cfg.settings.lvd_mode_voltage ? "Voltage" : "Current");
     printf("  %-36s %.3f V\n", "Equalization Voltage",  cfg.equalization_mV / 1000.0f);
     printf("  %-36s %.3f V\n", "Boost Voltage",         cfg.boost_mV        / 1000.0f);
     printf("  %-36s %.3f V\n", "Float Voltage",         cfg.float_mV        / 1000.0f);
     printf("  %-36s %.1f mV/°C\n", "Temp Compensation", cfg.temp_comp_mV_per_C);
 
     printf("\n[Night Mode]\n");
-    printf("  %-36s %.3f V\n", "Night Threshold",   cfg.night_threshold_mV / 1000.0f);
+    printf("  %-36s %.3f V\n", "Night Threshold",   cfg.settings.night_threshold_mv / 1000.0f);
     printf("  %-36s %s\n",     "Mode",              cfg.night_mode.c_str());
-    printf("  %-36s %u min\n", "Evening Duration",  cfg.evening_minutes_mn);
-    printf("  %-36s %u min\n", "Morning Duration",  cfg.morning_minutes_mn);
+    printf("  %-36s %u min\n", "Evening Duration",  cfg.settings.evening_minutes_mn);
+    printf("  %-36s %u min\n", "Morning Duration",  cfg.settings.morning_minutes_mn);
 
     printf("\n[Dimming]\n");
     printf("  %-36s %s\n",     "Dimming Mode",          cfg.night_mode_dimming.c_str());
-    printf("  %-36s %u min\n", "Evening Dim Duration",  cfg.evening_minutes_dimming_mn);
-    printf("  %-36s %u min\n", "Morning Dim Duration",  cfg.morning_minutes_dimming_mn);
-    printf("  %-36s %u %%\n",  "Dimming Level",         cfg.dimming_pct);
-    printf("  %-36s %u %%\n",  "Base Dimming Level",    cfg.base_dimming_pct);
+    printf("  %-36s %u min\n", "Evening Dim Duration",  cfg.settings.evening_minutes_dimming_mn);
+    printf("  %-36s %u min\n", "Morning Dim Duration",  cfg.settings.morning_minutes_dimming_mn);
+    printf("  %-36s %u %%\n",  "Dimming Level",         cfg.settings.dimming_pct);
+    printf("  %-36s %u %%\n",  "Base Dimming Level",    cfg.settings.base_dimming_pct);
 
     printf("\n[Features]\n");
-    printf("  %-36s %s\n",     "DALI Active",    cfg.dali_active ? "Yes" : "No");
-    printf("  %-36s %s\n",     "ALC Dimming",    cfg.alc_dimming ? "Yes" : "No");
+    printf("  %-36s %s\n",     "DALI Active",    cfg.settings.dali_power_enable  ? "Yes" : "No");
+    printf("  %-36s %s\n",     "ALC Dimming",    cfg.settings.alc_dimming_enable ? "Yes" : "No");
     printf("  %-36s %u Days\n","Operation Time", cfg.operation_days);
 }
 
@@ -185,16 +180,16 @@ void printDataLogger(
         printf("  %s\n", std::string(100, '-').c_str());
 
         for (const auto& d : days) {
-            char flags[64] = "";
-            if (d.isLd())    { std::strncat(flags, "LD ",    sizeof(flags) - strlen(flags) - 1); }
-            if (d.isFcb())   { std::strncat(flags, "FCB ",   sizeof(flags) - strlen(flags) - 1); }
-            if (d.isPvoc())  { std::strncat(flags, "PVOC ",  sizeof(flags) - strlen(flags) - 1); }
-            if (d.isLoc())   { std::strncat(flags, "LOC ",   sizeof(flags) - strlen(flags) - 1); }
-            if (d.isBov())   { std::strncat(flags, "BOV ",   sizeof(flags) - strlen(flags) - 1); }
-            if (d.isLsoc())  { std::strncat(flags, "LSOC ",  sizeof(flags) - strlen(flags) - 1); }
-            if (d.isTopvo()) { std::strncat(flags, "TOPVO ", sizeof(flags) - strlen(flags) - 1); }
-            if (d.isTopvl()) { std::strncat(flags, "TOPVL ", sizeof(flags) - strlen(flags) - 1); }
-            if (d.isTolo())  { std::strncat(flags, "TOLO ",  sizeof(flags) - strlen(flags) - 1); }
+            std::string flags;
+            if (d.isLd())    flags += "LD ";
+            if (d.isFcb())   flags += "FCB ";
+            if (d.isPvoc())  flags += "PVOC ";
+            if (d.isLoc())   flags += "LOC ";
+            if (d.isBov())   flags += "BOV ";
+            if (d.isLsoc())  flags += "LSOC ";
+            if (d.isTopvo()) flags += "TOPVO ";
+            if (d.isTopvl()) flags += "TOPVL ";
+            if (d.isTolo())  flags += "TOLO ";
 
             printf("  %-4d  %-9.1f %-9.1f %-9.1f %-9.1f %-9.1f %-9.1f %-8.1f %-8.1f %-7.1f  %s\n",
                    d.day_index,
@@ -203,7 +198,7 @@ void printDataLogger(
                    d.vpv_max_mV    / 1000.0f,  d.vpv_min_mV    / 1000.0f,
                    d.il_max_mA     / 1000.0f,  d.ipv_max_mA    / 1000.0f,
                    d.soc_pct,
-                   flags);
+                   flags.c_str());
         }
     }
 

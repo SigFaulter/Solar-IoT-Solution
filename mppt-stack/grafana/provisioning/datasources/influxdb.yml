@@ -2,7 +2,7 @@ apiVersion: 1
 
 datasources:
   - name: Solar MPPT
-    uid: influxdb-mppt
+    uid: influxdb-solar
     type: influxdb
     access: proxy
     url: http://influxdb:8086
@@ -10,8 +10,23 @@ datasources:
       version: Flux
       organization: mppt
       defaultBucket: solar
-      tlsSkipVerify: true # TODO harden with ssl
+      tlsSkipVerify: true
     secureJsonData:
       token: ${INFLUX_TOKEN}
     isDefault: true
-    editable: true
+    editable: false
+
+  - name: Solar MPPT - History
+    uid: influxdb-solar-history
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    jsonData:
+      version: Flux
+      organization: mppt
+      defaultBucket: solar_history
+      tlsSkipVerify: true
+    secureJsonData:
+      token: ${INFLUX_TOKEN}
+    isDefault: false
+    editable: false
