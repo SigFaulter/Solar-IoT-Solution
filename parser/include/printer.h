@@ -7,7 +7,6 @@
 
 // Prints the parsed telemetry to stdout in a human-readable format.
 void printSystemState(
-    const PhocosHeader&     hdr,
     const PhocosTelemetry&  t,
     const EepromConfig&     cfg,
     const char*             timestamp

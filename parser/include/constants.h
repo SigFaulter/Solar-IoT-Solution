@@ -1,12 +1,10 @@
 #pragma once
 
 
-//
 // Protocol field counts
 //
 // Version is detected by counting semicolons before parsing
 // V2 firmware produces 27 fields, V3 produces 42
-//
 constexpr int EXPECTED_FIELDS_V2 = 27;
 constexpr int EXPECTED_FIELDS_V3 = 42;
 
@@ -14,12 +12,10 @@ constexpr size_t FIELD_BUF_SIZE   = 24;
 constexpr size_t MIN_RESPONSE_LEN = 80;   // V2 lines ~142 chars, V3 ~205
 
 
-//
 // EEPROM byte offsets
 //
 // All offsets are from the start of the dump, which begins at device address 0x1000
 // Derived from Kotlin EepromParser and DataLoggerParser
-//
 constexpr int EEPROM_DEVICE_ID_OFFSET          = 120;   // 0x52 = V2, 0x56 = V3
 
 constexpr int EEPROM_BATTERY_TYPE_OFFSET         = 62;
@@ -33,8 +29,8 @@ constexpr int EEPROM_LVD_VOLTAGE_MV_OFFSET       = 41;    // u16 @ 41, 42
 constexpr int EEPROM_EQUALIZATION_MV_OFFSET      = 75;    // u16 @ 75, 76
 constexpr int EEPROM_BOOST_MV_OFFSET             = 77;    // u16 @ 77, 78
 constexpr int EEPROM_FLOAT_MV_OFFSET             = 81;    // u16 @ 81, 82
-constexpr int EEPROM_TEMP_COMP_OFFSET            = 66;    // s16 @ 66, 67  /10.0 = mV/°C
-constexpr int EEPROM_NIGHT_THRESH_MV_OFFSET      = 67;    // u16 @ 67, 68
+constexpr int EEPROM_TEMP_COMP_OFFSET            = 66;    // s8 @ 66  (single byte, mV/C)
+constexpr int EEPROM_NIGHT_THRESH_MV_OFFSET      = 67;    // u16 @ 67, 68  (MSB, LSB)
 
 constexpr int EEPROM_NIGHT_MODE_OFFSET           = 34;    // 0–3
 constexpr int EEPROM_EVENING_MINUTES_OFFSET      = 35;    // u16 @ 35, 36
