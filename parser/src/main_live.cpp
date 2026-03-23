@@ -51,9 +51,13 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
+#include <csignal>
 #include <string>
 #include <vector>
 #include <unistd.h>
+
+static volatile sig_atomic_t g_stop = 0;
+static void on_signal(int) { g_stop = 1; }
 
 
 static constexpr int TIMEOUT_SPACE_MS    =  500;
@@ -195,8 +199,10 @@ static int runPollMode(int fd, bool loop_mode,
         return EXIT_SUCCESS;
     }
 
-    while (true) {
-        sleep(POLL_INTERVAL_S);
+    while (!g_stop) {
+        for (int i = 0; i < POLL_INTERVAL_S && !g_stop; ++i)
+            sleep(1);
+        if (g_stop) break;
         fprintf(stderr, "\n[poll] -- polling -----------------------\n");
         PollResult r = pollDevice(fd);
         if (!r.have_tele && !r.have_eeprom) {
@@ -510,6 +516,9 @@ int main(int argc, char* argv[]) {
         else if (strcmp(argv[i], "--mqtt-port") == 0 && i + 1 < argc) broker_port = atoi(argv[++i]);
         else { fprintf(stderr, "[main] unknown option '%s'\n", argv[i]); usage(argv[0]); return EXIT_FAILURE; }
     }
+
+    signal(SIGTERM, on_signal);
+    signal(SIGINT,  on_signal);
 
     int fd = openSerial(port);
     if (fd < 0) return EXIT_FAILURE;
