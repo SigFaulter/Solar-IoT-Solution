@@ -1,0 +1,19 @@
+services:
+  mqtt-explorer:
+    image: ghcr.io/thomasnordquist/mqtt-explorer:latest
+    container_name: mppt_mqtt_explorer
+    restart: unless-stopped
+    ports:
+      - "4000:3000"
+    environment:
+      MQTT_EXPLORER_USERNAME: ${MQTT_EXPLORER_USERNAME}
+      MQTT_EXPLORER_PASSWORD: ${MQTT_EXPLORER_PASSWORD}
+      MQTT_EXPLORER_SKIP_AUTH: ${MQTT_EXPLORER_SKIP_AUTH}
+    volumes:
+      - ./mqtt-explorer/settings.json:/app/data/settings.json
+      - mqtt_explorer_data:/app/data
+    networks:
+      - mppt
+
+volumes:
+  mqtt_explorer_data:
