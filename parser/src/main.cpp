@@ -6,6 +6,7 @@
 #include "lookups.h"
 
 #include <cstdio>
+#include <cstring>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -13,8 +14,14 @@
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s <logfile.txt>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <logfile.txt> [--json]\n", argv[0]);
         return EXIT_FAILURE;
+    }
+
+    bool print_json = false;
+    for (int i = 2; i < argc; ++i) {
+        if (strcmp(argv[i], "--json") == 0) print_json = true;
+        else { fprintf(stderr, "Unknown option '%s'\n", argv[i]); return EXIT_FAILURE; }
     }
 
     std::ifstream file(argv[1]);
@@ -82,9 +89,7 @@ int main(int argc, char* argv[]) {
     if (have_eeprom)   { printEepromConfig(cfg); }
     if (have_eeprom)   { printDataLogger(summary, daily_logs, monthly_logs); }
 
-    printf("\nPrint JSON output? (y/Y): ");
-    char choice;
-    if (scanf(" %c", &choice) == 1 && (choice == 'y' || choice == 'Y')) {
+    if (print_json) {
         if (have_tele)
             printf("%s\n", buildTelemetryJSON(tele, cfg, ts).dump(2).c_str());
         if (have_eeprom)
