@@ -10,7 +10,7 @@
 
 // Reads all configuration fields from a parsed byte vector into an EepromConfig.
 static bool parseEepromConfig(const std::vector<uint8_t>& data, EepromConfig& cfg) {
-    if ((int)data.size() < 144) {
+    if (static_cast<int> (data.size()) < 144) {
         return false;
     }
 
@@ -109,7 +109,7 @@ static void parseDailyLogs(
         int buf_idx = (start_buf + i) % EEPROM_DAILY_MAX_BLOCKS;
         int o       = EEPROM_DAILY_START_OFFSET + buf_idx * EEPROM_DAILY_BLOCK_SIZE;
 
-        if (o + EEPROM_DAILY_BLOCK_SIZE > (int)data.size()) {
+        if (static_cast<size_t>(o + EEPROM_DAILY_BLOCK_SIZE) > data.size()) {
             continue;
         }
 
@@ -152,7 +152,7 @@ static void parseMonthlyLogs(
     std::vector<MonthlyLog>& monthly_logs) {
     monthly_logs.clear();
 
-    if ((int)data.size() < EEPROM_MONTHLY_START_OFFSET + EEPROM_MONTHLY_BLOCK_SIZE) {
+    if (data.size() < static_cast<size_t>(EEPROM_MONTHLY_START_OFFSET + EEPROM_MONTHLY_BLOCK_SIZE)) {
         return;
     }
 
@@ -169,7 +169,7 @@ static void parseMonthlyLogs(
         int buf_idx = (start_mbuf + i) % EEPROM_MONTHLY_MAX_BLOCKS;
         int o       = EEPROM_MONTHLY_START_OFFSET + buf_idx * EEPROM_MONTHLY_BLOCK_SIZE;
 
-        if (o + EEPROM_MONTHLY_BLOCK_SIZE > (int)data.size()) {
+        if (static_cast<size_t>(o + EEPROM_MONTHLY_BLOCK_SIZE) > data.size()) {
             continue;
         }
 
@@ -219,7 +219,7 @@ static bool parseEepromBytes(
     };
 
     const int s = EEPROM_DATALOG_SUMMARY_OFFSET;
-    if (s + 16 > (int)data.size()) {
+    if (static_cast<size_t>(s + 16) > data.size()) {
         return true;   // config parsed, no datalogger section present
     }
 
@@ -248,7 +248,7 @@ static bool decodeEepromLine(const char* raw, size_t len, std::vector<uint8_t>& 
     size_t start = sv.find_first_not_of(" \t\r\n!");
     if (start == std::string_view::npos) return false;
     out = parseHexDump(sv.substr(start));
-    return (int)out.size() >= 144;
+    return static_cast<int> (out.size()) >= 144;
 }
 
 bool parseEepromDump(
