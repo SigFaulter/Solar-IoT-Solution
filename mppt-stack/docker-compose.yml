@@ -13,7 +13,7 @@ services:
       - mppt
 
   influxdb:
-    image: influxdb:2.7
+    image: influxdb:2.8-alpine
     container_name: mppt_influxdb
     restart: unless-stopped
     ports:
@@ -23,11 +23,12 @@ services:
       DOCKER_INFLUXDB_INIT_USERNAME: admin
       DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_ADMIN_PASSWORD}
       DOCKER_INFLUXDB_INIT_ORG: mppt
-      DOCKER_INFLUXDB_INIT_BUCKET: solar       # Live telemetry
-      DOCKER_INFLUXDB_INIT_RETENTION: 0s       # Infinite retention
+      DOCKER_INFLUXDB_INIT_BUCKET: solar
+      DOCKER_INFLUXDB_INIT_RETENTION: 0s
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN}
     volumes:
       - influxdb_data:/var/lib/influxdb2
+      - ./influxdb/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8086/health"]
       interval: 10s
@@ -37,30 +38,14 @@ services:
     networks:
       - mppt
 
-  influxdb-init:
-    image: influxdb:2.7
-    container_name: mppt_influxdb_init
-    restart: "no"
-    depends_on:
-      influxdb:
-        condition: service_healthy
-    environment:
-      INFLUX_TOKEN: ${INFLUX_TOKEN}
-    volumes:
-      - ./influxdb/init:/init:ro
-    entrypoint: ["sh", "/init/init.sh"]
-    networks:
-      - mppt
-
   nodered:
-    build: ./nodered
+    build: nodered
     container_name: mppt_nodered
     restart: unless-stopped
     ports:
       - "1880:1880"
     environment:
       TZ: Africa/Casablanca
-      INFLUX_TOKEN: ${INFLUX_TOKEN}
       INFLUXDB_TOKEN: ${INFLUX_TOKEN}
       INFLUXDB_URL: http://influxdb:8086
       INFLUXDB_ORG: mppt
@@ -72,19 +57,19 @@ services:
       SMTP_PASS: ${SMTP_PASS}
       ALERT_EMAIL: ${ALERT_EMAIL}
     volumes:
-      - ./nodered/data:/data
+      - node-red-data:/data
+      - ./nodered/flows.json:/data/flows.json
+      - ./nodered/devices.json:/data/devices.json   # device registry
     depends_on:
       influxdb:
         condition: service_healthy
-      influxdb-init:
-        condition: service_completed_successfully
       mosquitto:
         condition: service_started
     networks:
       - mppt
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:12.4.1
     container_name: mppt_grafana
     restart: unless-stopped
     user: "472:472"
@@ -106,28 +91,13 @@ services:
     networks:
       - mppt
 
-  mqtt-explorer:
-    image: ghcr.io/thomasnordquist/mqtt-explorer:latest
-    container_name: mppt_mqtt_explorer
-    restart: unless-stopped
-    ports:
-      - "4000:3000"
-    environment:
-      MQTT_EXPLORER_USERNAME: ${MQTT_EXPLORER_USERNAME}
-      MQTT_EXPLORER_PASSWORD: ${MQTT_EXPLORER_PASSWORD}
-      MQTT_EXPLORER_SKIP_AUTH: ${MQTT_EXPLORER_SKIP_AUTH}
-    volumes:
-      - ./mqtt-explorer/settings.json:/app/data/settings.json
-      - mqtt_explorer_data:/app/data
-    networks:
-      - mppt
-
 volumes:
   mosquitto_data:
   mosquitto_log:
   influxdb_data:
   grafana_data:
   mqtt_explorer_data:
+  node-red-data:
 
 networks:
   mppt:

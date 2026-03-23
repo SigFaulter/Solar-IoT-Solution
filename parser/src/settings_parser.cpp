@@ -67,7 +67,7 @@ void patchSettingsBytes(const std::vector<uint8_t>& current_bytes,
                         const DeviceSettings&       s,
                         std::vector<uint8_t>&       out_bytes) {
     out_bytes = current_bytes;
-    if ((int)out_bytes.size() < SETTINGS_BLOB_MIN)
+    if (out_bytes.size() < static_cast<size_t>(SETTINGS_BLOB_MIN))
         out_bytes.resize(SETTINGS_BLOB_MIN, 0u);
 
     out_bytes[W(SR_BATTERY_TYPE_IDX)] = static_cast<uint8_t>(std::clamp(s.battery_type_index, 0, 2));

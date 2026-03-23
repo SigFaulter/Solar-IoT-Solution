@@ -50,7 +50,7 @@ inline int bcd2dec(uint8_t b) {
 
 
 inline uint8_t b(const std::vector<uint8_t>& data, int off) {
-    return (off >= 0 && off < (int)data.size()) ? data[off] : 0u;
+    return (off >= 0 && static_cast<size_t>(off) < data.size()) ? data[off] : 0u;
 }
 
 inline int get_u16(const std::vector<uint8_t>& data, int msb, int lsb) {
@@ -62,7 +62,7 @@ inline int get_u16(const std::vector<uint8_t>& data, int msb) {
 }
 
 inline void put_u16(std::vector<uint8_t>& bytes, int abs_off, int value) {
-    if (abs_off + 1 < (int)bytes.size()) {
+    if (static_cast<size_t>(abs_off + 1) < bytes.size()) {
         bytes[abs_off]     = static_cast<uint8_t>((value >> 8) & 0xFF);
         bytes[abs_off + 1] = static_cast<uint8_t>( value       & 0xFF);
     }
@@ -79,7 +79,8 @@ inline void currentTimestamp(char* buf, size_t sz) {
 // Returns the system hostname (used as MQTT gateway identifier).
 inline std::string hostname() {
     char buf[64] = {};
-    gethostname(buf, sizeof(buf) - 1);
+    if (gethostname(buf, sizeof(buf) - 1) != 0)
+        return "err-unknown-host";
     return buf;
 }
 

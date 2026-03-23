@@ -1,5 +1,4 @@
 *.log
-docker-compose.override.yml
 
 mosquitto/data/
 nodered/data/
