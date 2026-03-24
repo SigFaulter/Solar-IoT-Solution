@@ -1,13 +1,9 @@
 *.log
 
 mosquitto/data/
-nodered/data/
 grafana/data/
 
-nodered/data/.config.json
-nodered/data/.config.nodes.json
-nodered/data/node_modules/
-nodered/data/flows_cred.json
+nodered/flows.json.bak
 
 .env
 .env.*
