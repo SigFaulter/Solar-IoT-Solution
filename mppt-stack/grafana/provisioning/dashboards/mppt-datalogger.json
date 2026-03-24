@@ -93,7 +93,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -165,7 +165,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -237,7 +237,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -313,7 +313,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -378,7 +378,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -443,7 +443,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -486,7 +486,7 @@
             "cellOptions": {
               "type": "auto"
             },
-            "filterable": false,
+            "filterable": true,
             "footer": {
               "reducers": []
             },
@@ -773,12 +773,9 @@
       "id": 21,
       "options": {
         "cellHeight": "sm",
-        "footer": {
-          "show": false
-        },
         "showHeader": true
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_daily\")\n  |> filter(fn: (r) =>\n      r._field == \"day_num\" or r._field == \"soc_pct\" or\n      r._field == \"ah_charge\" or r._field == \"ah_load\" or\n      r._field == \"vbat_max_v\" or r._field == \"vbat_min_v\" or\n      r._field == \"vpv_max_v\" or r._field == \"il_max_a\" or\n      r._field == \"ext_temp_max_c\" or r._field == \"ext_temp_min_c\" or\n      r._field == \"nightlength_min\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"day_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> pivot(rowKey: [\"day_index\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"day_num\"], desc: false)\n  |> rename(columns: {\n      day_num: \"Day\", soc_pct: \"SOC %\",\n      ah_charge: \"Ah In\", ah_load: \"Ah Out\",\n      vbat_max_v: \"V Bat Max\", vbat_min_v: \"V Bat Min\",\n      vpv_max_v: \"V PV Max\", il_max_a: \"Load A Max\",\n      ext_temp_max_c: \"T Max °C\", ext_temp_min_c: \"T Min °C\",\n      nightlength_min: \"Night min\",\n  })\n  |> keep(columns: [\"Day\",\"SOC %\",\"Ah In\",\"Ah Out\",\"V Bat Max\",\"V Bat Min\",\"V PV Max\",\"Load A Max\",\"T Max °C\",\"T Min °C\",\"Night min\"])",
@@ -931,7 +928,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1060,7 +1057,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1194,7 +1191,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1336,7 +1333,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1480,7 +1477,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1597,7 +1594,7 @@
         "xTickLabelRotation": -45,
         "xTickLabelSpacing": 0
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1640,7 +1637,7 @@
             "cellOptions": {
               "type": "auto"
             },
-            "filterable": false,
+            "filterable": true,
             "footer": {
               "reducers": []
             },
@@ -1920,12 +1917,9 @@
       "id": 31,
       "options": {
         "cellHeight": "sm",
-        "footer": {
-          "show": false
-        },
         "showHeader": true
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -400d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_monthly\")\n  |> filter(fn: (r) =>\n      r._field == \"month_num\" or r._field == \"soc_pct\" or\n      r._field == \"ah_charge\" or r._field == \"ah_load\" or\n      r._field == \"vbat_max_v\" or r._field == \"vbat_min_v\" or\n      r._field == \"vpv_max_v\" or r._field == \"ipv_max_a\" or\n      r._field == \"il_max_a\" or r._field == \"ext_temp_max_c\" or\n      r._field == \"ext_temp_min_c\" or r._field == \"nightlength_min\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"month_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> pivot(rowKey: [\"month_index\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"month_num\"], desc: false)\n  |> rename(columns: {\n      month_num: \"Month\", soc_pct: \"SOC %\",\n      ah_charge: \"Ah In\", ah_load: \"Ah Out\",\n      vbat_max_v: \"V Bat Max\", vbat_min_v: \"V Bat Min\",\n      vpv_max_v: \"V PV Max\", ipv_max_a: \"PV A Max\",\n      il_max_a: \"Load A Max\", ext_temp_max_c: \"T Max °C\",\n      ext_temp_min_c: \"T Min °C\", nightlength_min: \"Night min\",\n  })\n  |> keep(columns: [\"Month\",\"SOC %\",\"Ah In\",\"Ah Out\",\"V Bat Max\",\"V Bat Min\",\"V PV Max\",\"PV A Max\",\"Load A Max\",\"T Max °C\",\"T Min °C\",\"Night min\"])",
@@ -2080,7 +2074,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -2223,7 +2217,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -2351,7 +2345,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -2485,7 +2479,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -2602,7 +2596,7 @@
         "xTickLabelRotation": -45,
         "xTickLabelSpacing": 0
       },
-      "pluginVersion": "12.4.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -2630,8 +2624,8 @@
     "list": [
       {
         "current": {
-          "text": "0503-18",
-          "value": "0503-18"
+          "text": "0166-18",
+          "value": "0166-18"
         },
         "datasource": {
           "type": "influxdb",
@@ -2659,6 +2653,6 @@
   "timezone": "browser",
   "title": "📊 MPPT Solar - Datalogger",
   "uid": "mppt-datalogger",
-  "version": 4,
+  "version": 2,
   "weekStart": ""
 }
