@@ -165,7 +165,7 @@ static void parse_daily_logs(const std::vector<uint8_t> &data,
 static void parse_monthly_logs(const std::vector<uint8_t> &data,
                                const uint16_t              NUM_DAYS,
                                MonthlyLogBuffer           &monthly_logs) {
-    const int TOTAL_MONTHS = NUM_DAYS / 30;
+    const int TOTAL_MONTHS = NUM_DAYS / 31;
     const int NUM_MONTHLY  = std::min(TOTAL_MONTHS, EEPROM_MONTHLY_MAX_BLOCKS);
 
     if (NUM_MONTHLY <= 0) {
