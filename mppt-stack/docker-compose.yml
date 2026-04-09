@@ -58,7 +58,6 @@ services:
       ALERT_EMAIL: ${ALERT_EMAIL}
     volumes:
       - node-red-data:/data
-      - ./nodered/devices.json:/data/devices.json   # device registry
     depends_on:
       influxdb:
         condition: service_healthy

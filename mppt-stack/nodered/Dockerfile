@@ -9,5 +9,4 @@ WORKDIR /usr/src/node-red
 COPY settings.js /data/settings.js
 COPY flows.json /data/flows.json
 COPY flows_cred.json /data/flows_cred.json
-COPY devices.json /data/devices.json
 
