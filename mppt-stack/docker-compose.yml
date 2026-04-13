@@ -51,11 +51,12 @@ services:
       INFLUXDB_ORG: mppt
       INFLUXDB_BUCKET: solar
       INFLUXDB_BUCKET_HISTORY: solar_history
-      SMTP_SERVER: ${SMTP_SERVER}
+      SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       ALERT_EMAIL: ${ALERT_EMAIL}
+      NODE_RED_CREDENTIAL_SECRET: ${NODE_RED_CREDENTIAL_SECRET}
     volumes:
       - node-red-data:/data
     depends_on:
