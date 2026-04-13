@@ -39,7 +39,7 @@ static constexpr int SR_ALC_DIMMING      = 64; // offset 98
 // All codes and values are two-digit uppercase hex with no separators.
 
 // Base-dimming clamp ranges, by hardware version.
-// V2: 15–70 %   V3: 10–87 %
+// V2: 15-70 %   V3: 10-87 %
 struct BaseDimmingRange {
     uint8_t lo;
     uint8_t hi;

@@ -66,10 +66,10 @@ constexpr int EEPROM_FLOAT_MV_OFFSET        = 81; // u16 @ 81, 82
 constexpr int EEPROM_TEMP_COMP_OFFSET       = 66; // s8 @ 66  (single byte, mV/C)
 constexpr int EEPROM_NIGHT_THRESH_MV_OFFSET = 67; // u16 @ 67, 68  (MSB, LSB)
 
-constexpr int EEPROM_NIGHT_MODE_OFFSET       = 34; // 0–3
+constexpr int EEPROM_NIGHT_MODE_OFFSET       = 34; // 0-3
 constexpr int EEPROM_EVENING_MINUTES_OFFSET  = 35; // u16 @ 35, 36
 constexpr int EEPROM_MORNING_MINUTES_OFFSET  = 37; // u16 @ 37, 38
-constexpr int EEPROM_DIM_MODE_OFFSET         = 43; // 0–3
+constexpr int EEPROM_DIM_MODE_OFFSET         = 43; // 0-3
 constexpr int EEPROM_DIM_EVENING_OFFSET      = 44; // u16 @ 44, 45
 constexpr int EEPROM_DIM_MORNING_OFFSET      = 46; // u16 @ 46, 47
 constexpr int EEPROM_DIMMING_PCT_OFFSET      = 69;

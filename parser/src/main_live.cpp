@@ -22,18 +22,18 @@
  *   --set key=value     patch a setting (requires --settings)
  *
  * Setting keys:
- *   battery_type     0–2
- *   capacity_ah      1–500
- *   lvd_mv           5000–15000
- *   night_thresh_mv  4000–14000
- *   night_mode       0–3
- *   evening_min      0–600
- *   morning_min      0–600
- *   dim_mode         0–3
- *   dim_evening_min  0–600
- *   dim_morning_min  0–600
- *   dimming_pct      0–100
- *   base_dimming_pct 0–100
+ *   battery_type     0-2
+ *   capacity_ah      1-500
+ *   lvd_mv           5000-15000
+ *   night_thresh_mv  4000-14000
+ *   night_mode       0-3
+ *   evening_min      0-600
+ *   morning_min      0-600
+ *   dim_mode         0-3
+ *   dim_evening_min  0-600
+ *   dim_morning_min  0-600
+ *   dimming_pct      0-100
+ *   base_dimming_pct 0-100
  *   dali             0|1
  *   alc              0|1
  *
