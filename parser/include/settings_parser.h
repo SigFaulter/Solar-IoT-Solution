@@ -39,7 +39,7 @@ static constexpr int SR_ALC_DIMMING      = 64; // offset 98
 // All codes and values are two-digit uppercase hex with no separators.
 
 // Base-dimming clamp ranges, by hardware version.
-// V2: 15–70 %   V3: 10–87 %
+// V2: 15-70 %   V3: 10-87 %
 struct BaseDimmingRange {
     uint8_t lo;
     uint8_t hi;
@@ -53,8 +53,8 @@ inline auto base_dimming_range(int hw_version) -> BaseDimmingRange {
 // DeviceSettings payload
 auto build_write_commands(const DeviceSettings &s, int hw_version) -> std::vector<std::string>;
 
-// Build DeviceSettings from a parsed EepromConfig (live mode).
-auto device_settings_from_eeprom(const EepromConfig &cfg, int load_state = -1) -> DeviceSettings;
+// Build DeviceSettings from a parsed EepromSettings (live mode).
+auto device_settings_from_eeprom(const EepromSettings &cfg, int load_state = -1) -> DeviceSettings;
 
 // Apply a single "key=value" patch string to a DeviceSettings.
 // Returns false and prints an error on bad key or value.

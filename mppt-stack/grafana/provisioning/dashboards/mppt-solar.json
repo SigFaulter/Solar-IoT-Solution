@@ -1077,7 +1077,7 @@
         "type": "influxdb",
         "uid": "influxdb-solar"
       },
-      "description": "State of charge - 0–100%. Values below 20% indicate risk of LVD.",
+      "description": "State of charge - 0-100%. Values below 20% indicate risk of LVD.",
       "fieldConfig": {
         "defaults": {
           "color": {

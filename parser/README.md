@@ -81,18 +81,18 @@ Reads Space (` `), EEPROM (`!`), and Settings (`"`) lines from the file, prints 
 
 | Key | Range | Notes |
 |---|---|---|
-| `battery_type` | 0–2 | V2: 0=AGM 1=Liquid 2=LFP; V3: LFP variants |
-| `capacity_ah` | 1–500 | |
-| `lvd_mv` | 5000–15000 | Low-voltage disconnect threshold (mV) |
-| `night_thresh_mv` | 4000–14000 | Night detection threshold (mV) |
-| `night_mode` | 0–3 | 0=Off 1=D2D 2=DD 3=MN |
-| `evening_min` | 0–600 | |
-| `morning_min` | 0–600 | |
-| `dim_mode` | 0–3 | |
-| `dim_evening_min` | 0–600 | |
-| `dim_morning_min` | 0–600 | |
-| `dimming_pct` | 0–100 | |
-| `base_dimming_pct` | 0–100 | |
+| `battery_type` | 0-2 | V2: 0=AGM 1=Liquid 2=LFP; V3: LFP variants |
+| `capacity_ah` | 1-500 | |
+| `lvd_mv` | 5000-15000 | Low-voltage disconnect threshold (mV) |
+| `night_thresh_mv` | 4000-14000 | Night detection threshold (mV) |
+| `night_mode` | 0-3 | 0=Off 1=D2D 2=DD 3=MN |
+| `evening_min` | 0-600 | |
+| `morning_min` | 0-600 | |
+| `dim_mode` | 0-3 | |
+| `dim_evening_min` | 0-600 | |
+| `dim_morning_min` | 0-600 | |
+| `dimming_pct` | 0-100 | |
+| `base_dimming_pct` | 0-100 | |
 | `dali` | 0\|1 | |
 | `alc` | 0\|1 | |
 

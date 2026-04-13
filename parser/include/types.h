@@ -79,7 +79,7 @@ struct FaultStatusFlags {
 
 struct DeviceSettings {
     // Battery
-    uint8_t  battery_type_index   = 0; // 0–2 (V2: AGM/Liquid/LiFePO4, V3: LFP temps)
+    uint8_t  battery_type_index   = 0; // 0-2 (V2: AGM/Liquid/LiFePO4, V3: LFP temps)
     uint16_t capacity_ah          = 0;
     uint16_t lvd_voltage_mv       = 0; // effective LVD (current or voltage, resolved)
     uint16_t lvd_level_current_mv = 0; // raw current-mode LVD register
@@ -225,9 +225,9 @@ struct MonthlyLogBuffer {
     std::size_t                                     count = 0;
 };
 
-// All configuration fields read from the EEPROM dump.
+// All settings fields read from the EEPROM dump.
 // Parsed from the same '!' dump line as the datalogger data.
-struct EepromConfig {
+struct EepromSettings {
     // Identity
     std::string device_id;
     std::string serial_number;
