@@ -349,7 +349,7 @@
               }
             ]
           },
-          "unit": "mAh"
+          "unit": "mamph"
         },
         "overrides": []
       },
@@ -533,7 +533,7 @@
               },
               {
                 "id": "decimals",
-                "value": 0
+                "value": 1
               },
               {
                 "id": "thresholds",
@@ -2619,8 +2619,8 @@
     "list": [
       {
         "current": {
-          "text": "All",
-          "value": "$__all"
+          "text": "0503-18",
+          "value": "0503-18"
         },
         "datasource": {
           "type": "influxdb",
