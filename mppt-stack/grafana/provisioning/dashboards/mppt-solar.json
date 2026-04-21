@@ -2022,10 +2022,12 @@
       {
         "current": {
           "text": [
-            "0503-18"
+            "0503-18",
+            "0166-18"
           ],
           "value": [
-            "0503-18"
+            "0503-18",
+            "0166-18"
           ]
         },
         "datasource": {
@@ -2075,6 +2077,6 @@
   "timezone": "browser",
   "title": "☀️ MPPT Solar - Live Telemetry",
   "uid": "mppt-solar",
-  "version": 8,
+  "version": 1,
   "weekStart": ""
 }

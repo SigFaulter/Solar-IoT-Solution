@@ -67,8 +67,6 @@ enum LvdMode {
   LVD_MODE_VOLTAGE = 1;
 }
 
-// Bitmask constants
-//
 // LoadStateMask  (Space-cmd field 13)
 //   bit 0  = load_disconnected
 //   bit 1  = night_mode_active
@@ -94,44 +92,20 @@ enum LvdMode {
 //   bit 5  = over_discharge_current (0x20)
 //   bit 6  = battery_over_temp      (0x40)
 //   bit 7  = battery_under_temp     (0x80)
-//
-// TelemetryFlags  (packed bools from Telemetry, replaces 7 bool fields)
-//   bit 0  = battery_detected
-//   bit 1  = is_night
-//   bit 2  = load_on
-//   bit 3  = night_mode_active
-//   bit 4  = lvd_active
-//   bit 5  = user_disconnect
-//   bit 6  = load_over_current
-//   bit 7  = pv_detected
-//   bit 8  = dali_active
-//
-// StateFlags  (LogEntry, replaces 9 bool fields)
-//   bit 0  = load_disconnect
-//   bit 1  = full_charge
-//   bit 2  = pv_over_current
-//   bit 3  = load_over_current
-//   bit 4  = battery_over_voltage
-//   bit 5  = low_soc
-//   bit 6  = temp_over_pv_over
-//   bit 7  = temp_over_pv_low
-//   bit 8  = temp_over_load_over
 
 message DeviceInfo {
   string production_date   = 1;
-  string manufacturer_id   = 2;
-  uint32 device_identifier = 3;
 
-  uint32 hw_version       = 4;
-  uint32 firmware_version = 5;
-  string device_type      = 6;
+  uint32 hw_version       = 2;
+  uint32 firmware_version = 3;
+  string device_type      = 4;
 
-  uint32 equalization_voltage_mv = 7;
-  uint32 boost_voltage_mv        = 8;
-  uint32 float_voltage_mv        = 9;
-  sint32 temp_comp_mv_per_c      = 10;
+  uint32 equalization_voltage_mv = 5;
+  uint32 boost_voltage_mv        = 6;
+  uint32 float_voltage_mv        = 7;
+  sint32 temp_comp_mv_per_c      = 8;
 
-  uint32 published_at = 11;
+  uint32 published_at = 9;
 }
 
 message FaultStatus {
@@ -179,12 +153,13 @@ message Telemetry {
   sint32 external_temp_c = 25;
 
   uint32 controller_op_days = 26;
+  uint32 fault_mask         = 27;
 
   // Packed boolean flags
   // bit 0=battery_detected  bit 1=is_night  bit 2=load_on  bit 3=night_mode
   // bit 4=lvd_active  bit 5=user_disconnect  bit 6=load_over_current
   // bit 7=pv_detected  bit 8=dali_active
-  uint32 flags = 27;
+  uint32 flags = 28;
 }
 
 message DeviceSettings {

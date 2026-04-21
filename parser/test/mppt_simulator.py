@@ -139,6 +139,14 @@ class SimDevice:
     def _sine(t: float, period: float, lo: float, hi: float) -> float:
         return lo + (hi - lo) * (0.5 + 0.5 * math.sin(2 * math.pi * t / period))
 
+    def _decode_flags(self):
+        flags = 0
+        if self._settings_override is not None:
+            flags = self._settings_override.advanced_flags
+
+        self.dali_enabled = (flags & (1 << 0)) != 0
+        self.alc_enabled = (flags & (1 << 1)) != 0
+
     def get_fault_mask(self) -> int:
         mask = 0
         for name, bit in FAULT_BITS.items():
@@ -150,6 +158,7 @@ class SimDevice:
         now = time.time()
         dt = now - self._last_t
         self._last_t = now
+        self._decode_flags()
 
         self._mode_timer += dt
         _, dur = MODE_SCHEDULE[self._mode_idx]
@@ -310,7 +319,14 @@ class SimDevice:
 
         if ps.HasField("advanced_flags"):
             self._settings_override.advanced_flags = ps.advanced_flags
-            updated.append(f"adv_flags=0x{ps.advanced_flags:02X}")
+            flags_str = []
+            if ps.advanced_flags & (1 << 0):
+                flags_str.append("dali_power_enable")
+            if ps.advanced_flags & (1 << 1):
+                flags_str.append("alc_dimming_enable")
+            
+            decoded = f" ({', '.join(flags_str)})" if flags_str else ""
+            updated.append(f"adv_flags=0x{ps.advanced_flags:02X}{decoded}")
 
         if not updated:
             print("    (no fields changed)")
@@ -388,7 +404,7 @@ class SimDevice:
         msg.time_since_dusk_min = 0
         msg.average_length_min = 640
         msg.fault_mask = self.get_fault_mask()
-        
+
         flags = 0
         flags |= 1 << 0
         if self.charge_mode == "Float" and random.random() > 0.9:
