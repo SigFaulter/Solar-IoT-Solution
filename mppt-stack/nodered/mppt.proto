@@ -1,27 +1,3 @@
-// Optimisation pass:
-//  - All booleans packed into uint32 bitmasks (no bool fields anywhere)
-//  - All strings replaced with enums (ChargeMode, LedStatus, NightMode, BatteryType)
-//  - All floats replaced with scaled integers matching the native wire resolution
-//    from the Phocos protocol doc (mV, mA*10, centi-percent, minutes, Wh, etc.)
-//    Unit conversions happen in Node-RED, never in the proto layer.
-//  - google.protobuf.Timestamp replaced with plain uint32 unix seconds
-//    (saves 10-12 bytes per message;
-//  - optimize_for = LITE_RUNTIME retained
-//
-// Scaling reference (all division done in Node-RED / consumer):
-//   battery_voltage_mv    ÷ 1000  → V        (e.g. 13982 → 13.982 V)
-//   charge_current_ma10   ÷ 100   → A         (e.g.  400  → 4.00 A ;
-//   load_current_ma10     ÷ 100   → A
-//   pv_voltage_mv         ÷ 1000  → V
-//   led_voltage_mv        ÷ 1000  → V
-//   led_current_ma10      ÷ 100   → A
-//   soc_pct               as-is   → %  (0-100)
-//   temp_c                as-is   → °C (signed, sint32)
-//   power_w               as-is   → W  (already integer in the protocol)
-//   energy_wh             as-is   → Wh (already integer in the protocol)
-//   voltage_mv (settings) ÷ 1000  → V  (for display;
-//   avg_morning_soc_pct  ÷ 100   → %  (centi-percent, preserves 2 decimal places)
-
 syntax = "proto3";
 package mppt;
 
@@ -67,8 +43,6 @@ enum LvdMode {
   LVD_MODE_VOLTAGE = 1;
 }
 
-// Bitmask constants
-//
 // LoadStateMask  (Space-cmd field 13)
 //   bit 0  = load_disconnected
 //   bit 1  = night_mode_active
@@ -94,28 +68,6 @@ enum LvdMode {
 //   bit 5  = over_discharge_current (0x20)
 //   bit 6  = battery_over_temp      (0x40)
 //   bit 7  = battery_under_temp     (0x80)
-//
-// TelemetryFlags  (packed bools from Telemetry, replaces 7 bool fields)
-//   bit 0  = battery_detected
-//   bit 1  = is_night
-//   bit 2  = load_on
-//   bit 3  = night_mode_active
-//   bit 4  = lvd_active
-//   bit 5  = user_disconnect
-//   bit 6  = load_over_current
-//   bit 7  = pv_detected
-//   bit 8  = dali_active
-//
-// StateFlags  (LogEntry, replaces 9 bool fields)
-//   bit 0  = load_disconnect
-//   bit 1  = full_charge
-//   bit 2  = pv_over_current
-//   bit 3  = load_over_current
-//   bit 4  = battery_over_voltage
-//   bit 5  = low_soc
-//   bit 6  = temp_over_pv_over
-//   bit 7  = temp_over_pv_low
-//   bit 8  = temp_over_load_over
 
 message DeviceInfo {
   string production_date   = 1;
@@ -217,12 +169,12 @@ message LogEntry {
   uint32 vpv_max_mv      = 5;
   uint32 ah_charge_mah   = 6;
   uint32 ah_load_mah     = 7;
-  uint32 il_max_ma10     = 8;
-  uint32 ipv_max_ma10    = 9;
-  float  soc_pct    = 10;
+  uint32 il_max_ma       = 8;
+  uint32 ipv_max_ma      = 9;
+  float  soc_pct       = 10;
   sint32 ext_temp_max_c  = 11;
   sint32 ext_temp_min_c  = 12;
-  uint32  nightlength_min = 13;
+  uint32 nightlength_min = 13;
 
   // Packed StateFlags bitmask (replaces 9 bool fields)
   // bit 0=load_disconnect  bit 1=full_charge  bit 2=pv_over_current
@@ -256,8 +208,6 @@ message ControlCommand {
   }
 }
 
-message ClearDatalogger {}
-
 // bit 0 = on/off  (avoids a bool field)
 message SwitchLoad {
   uint32 flags = 1;
@@ -269,24 +219,3 @@ message CommandAck {
   string reason     = 3;
   uint32 timestamp  = 4;
 }
-
-message DeviceSnapshot {
-  string     serial           = 1;
-  string     zone             = 2;
-  string     gateway_id       = 3;
-  uint32     hw_version       = 4;
-  bool       online           = 5;
-  ChargeMode charge_mode      = 6;
-  uint32     battery_voltage_mv = 7;
-  float      battery_soc_pct  = 8;
-  uint32     charge_power_w   = 9;
-  uint32     load_power_w     = 10;
-  uint32     fault_mask       = 11;
-  uint32     last_seen        = 12;
-}
-
-message FleetSummary {
-  repeated DeviceSnapshot devices = 1;
-  uint32 timestamp = 2;
-}
-

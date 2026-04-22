@@ -1729,7 +1729,7 @@
               },
               {
                 "id": "decimals",
-                "value": 0
+                "value": 3
               }
             ]
           },
@@ -1744,7 +1744,8 @@
                 "value": "mamph"
               },
               {
-                "id": "decimals"
+                "id": "decimals",
+                "value": 3
               }
             ]
           },
@@ -2648,6 +2649,6 @@
   "timezone": "browser",
   "title": "📊 MPPT Solar - Datalogger",
   "uid": "mppt-datalogger",
-  "version": 3,
+  "version": 2,
   "weekStart": ""
 }
