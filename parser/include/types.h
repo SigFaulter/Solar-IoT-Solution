@@ -162,7 +162,7 @@ struct PhocosTelemetry {
     // Battery
     uint32_t battery_voltage_mv   = 0;
     uint8_t  battery_soc_pct      = 0;
-    uint32_t charge_current_ma    = 0;
+    uint32_t charge_current_ma10  = 0;
     uint32_t battery_threshold_mv = 0;
     uint16_t bat_op_days          = 0;
     uint16_t energy_in_daily_wh   = 0;
@@ -172,8 +172,8 @@ struct PhocosTelemetry {
     uint8_t  battery_detected     = 0;
 
     // Load
-    uint32_t load_current_ma = 0;
-    uint16_t load_power_w    = 0;
+    uint32_t load_current_ma10 = 0;
+    uint16_t load_power_w      = 0;
 
     // PV
     uint32_t pv_voltage_mv = 0;
@@ -186,11 +186,11 @@ struct PhocosTelemetry {
     uint16_t avg_nightlength_min = 0;
 
     // LED
-    uint32_t led_voltage_mv = 0;
-    uint32_t led_current_ma = 0;
-    uint16_t led_power_w    = 0;
-    uint8_t  led_status     = 0;
-    uint8_t  dali_active    = 0;
+    uint32_t led_voltage_mv   = 0;
+    uint32_t led_current_ma10 = 0;
+    uint16_t led_power_w      = 0;
+    uint8_t  led_status       = 0;
+    uint8_t  dali_active      = 0;
 
     // Raw state fields
     uint16_t charge_state_raw = 0; // field 14, source of charge mode and is_night
@@ -304,21 +304,38 @@ struct StateFlags {
 // Monthly).
 struct LogEntry {
     uint16_t index           = 0; // 1-based chronological index
-    uint16_t vbat_max_mv     = 0;
-    uint16_t vbat_min_mv     = 0;
-    uint32_t ah_charge_mah   = 0;
-    uint32_t ah_load_mah     = 0;
-    uint16_t vpv_max_mv      = 0;
-    uint16_t vpv_min_mv      = 0;
-    uint16_t il_max_ma       = 0;
-    uint16_t ipv_max_ma      = 0;
-    float    soc_pct         = 0.0F;
+    uint8_t  vbat_max_mv     = 0;
+    uint8_t  vbat_min_mv     = 0; // raw
+    uint16_t ah_charge_mah   = 0; // raw
+    uint16_t ah_load_mah     = 0; // raw
+    uint8_t  vpv_max_mv      = 0; // raw
+    uint8_t  vpv_min_mv      = 0; // raw
+    uint8_t  il_max_ma       = 0; // raw
+    uint8_t  ipv_max_ma      = 0; // raw
+    uint8_t  soc_pct         = 0; // raw
     int8_t   ext_temp_max_c  = 0;
     int8_t   ext_temp_min_c  = 0;
-    uint16_t nightlength_min = 0;
+    uint32_t nightlength_min = 0; // raw
 
     StateFlags state;
 };
+
+struct HumanLogEntry {
+    float    vbat_max_v;
+    float    vbat_min_v;
+    float    ah_charge_mah;
+    float    ah_load_mah;
+    float    vpv_max_v;
+    float    vpv_min_v;
+    float    il_max_ma;
+    float    ipv_max_ma;
+    float    soc_pct;
+    int8_t   ext_temp_max_c;
+    int8_t   ext_temp_min_c;
+    uint32_t nightlength_min;
+};
+
+HumanLogEntry to_human_log(const LogEntry &e, uint32_t ah_multiplier);
 
 // Fixed-capacity log buffers matching the EEPROM circular buffer sizes.
 // Each LogEntry is 16 bytes on the wire as per the documentation.

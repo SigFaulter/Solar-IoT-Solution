@@ -1,27 +1,3 @@
-// Optimisation pass:
-//  - All booleans packed into uint32 bitmasks (no bool fields anywhere)
-//  - All strings replaced with enums (ChargeMode, LedStatus, NightMode, BatteryType)
-//  - All floats replaced with scaled integers matching the native wire resolution
-//    from the Phocos protocol doc (mV, mA*10, centi-percent, minutes, Wh, etc.)
-//    Unit conversions happen in Node-RED, never in the proto layer.
-//  - google.protobuf.Timestamp replaced with plain uint32 unix seconds
-//    (saves 10-12 bytes per message;
-//  - optimize_for = LITE_RUNTIME retained
-//
-// Scaling reference (all division done in Node-RED / consumer):
-//   battery_voltage_mv    ÷ 1000  → V        (e.g. 13982 → 13.982 V)
-//   charge_current_ma10   ÷ 100   → A         (e.g.  400  → 4.00 A ;
-//   load_current_ma10     ÷ 100   → A
-//   pv_voltage_mv         ÷ 1000  → V
-//   led_voltage_mv        ÷ 1000  → V
-//   led_current_ma10      ÷ 100   → A
-//   soc_pct               as-is   → %  (0-100)
-//   temp_c                as-is   → °C (signed, sint32)
-//   power_w               as-is   → W  (already integer in the protocol)
-//   energy_wh             as-is   → Wh (already integer in the protocol)
-//   voltage_mv (settings) ÷ 1000  → V  (for display;
-//   avg_morning_soc_pct  ÷ 100   → %  (centi-percent, preserves 2 decimal places)
-
 syntax = "proto3";
 package mppt;
 
@@ -193,12 +169,12 @@ message LogEntry {
   uint32 vpv_max_mv      = 5;
   uint32 ah_charge_mah   = 6;
   uint32 ah_load_mah     = 7;
-  uint32 il_max_ma10     = 8;
-  uint32 ipv_max_ma10    = 9;
-  float  soc_pct    = 10;
+  uint32 il_max_ma       = 8;
+  uint32 ipv_max_ma      = 9;
+  float  soc_pct       = 10;
   sint32 ext_temp_max_c  = 11;
   sint32 ext_temp_min_c  = 12;
-  uint32  nightlength_min = 13;
+  uint32 nightlength_min = 13;
 
   // Packed StateFlags bitmask (replaces 9 bool fields)
   // bit 0=load_disconnect  bit 1=full_charge  bit 2=pv_over_current
@@ -245,24 +221,3 @@ message CommandAck {
   string reason     = 3;
   uint32 timestamp  = 4;
 }
-
-message DeviceSnapshot {
-  string     serial           = 1;
-  string     zone             = 2;
-  string     gateway_id       = 3;
-  uint32     hw_version       = 4;
-  bool       online           = 5;
-  ChargeMode charge_mode      = 6;
-  uint32     battery_voltage_mv = 7;
-  float      battery_soc_pct  = 8;
-  uint32     charge_power_w   = 9;
-  uint32     load_power_w     = 10;
-  uint32     fault_mask       = 11;
-  uint32     last_seen        = 12;
-}
-
-message FleetSummary {
-  repeated DeviceSnapshot devices = 1;
-  uint32 timestamp = 2;
-}
-

@@ -104,8 +104,11 @@ auto MqttClient::subscribe(const std::string &topic, int qos, MessageCallback cb
         return false;
     }
     try {
-        client_->subscribe(topic, qos)
-            ->wait_for(std::chrono::milliseconds(cfg_.subscribe_timeout_ms));
+        const bool sub_ok = client_->subscribe(topic, qos)
+                                ->wait_for(std::chrono::milliseconds(cfg_.subscribe_timeout_ms));
+        if (!sub_ok) {
+            std::cerr << "[mqtt] subscribe timed out on '" << topic << "'\n";
+        }
         subscriptions_.emplace_back(topic, std::move(cb));
         std::cerr << "[mqtt] subscribed to '" << topic << "' (QoS " << qos << ")\n";
         return true;

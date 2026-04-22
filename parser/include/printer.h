@@ -1,7 +1,6 @@
 #pragma once
 
 #include <ctime>
-#include <string_view>
 
 #include "types.h"
 
@@ -15,8 +14,3 @@ void print_eeprom_config(const EepromSettings &settings);
 void print_data_logger(const DataloggerSummary &summary,
                        const DailyLogBuffer    &days,
                        const MonthlyLogBuffer  &months);
-
-// Print JSON payloads per topic (mirrors what gets published to MQTT).
-void print_info_json(const EepromSettings &settings);
-void print_state_json(const PhocosTelemetry &t, const EepromSettings &settings, std::time_t ts);
-void print_settings_json(const DeviceSettings &s, std::time_t ts);
