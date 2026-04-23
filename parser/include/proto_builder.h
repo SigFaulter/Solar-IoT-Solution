@@ -42,7 +42,7 @@
 
     msg.set_battery_voltage_mv(t.battery_voltage_mv);
     msg.set_battery_soc_pct(t.battery_soc_pct);
-    msg.set_charge_current_ma10(t.charge_current_ma);
+    msg.set_charge_current_ma10(t.charge_current_ma10);
     msg.set_charge_power_w(t.charge_power_w);
     msg.set_end_of_charge_voltage_mv(t.battery_threshold_mv);
     msg.set_charge_mode(charge_mode_from_state(t.charge_state_raw));
@@ -54,6 +54,7 @@
     msg.set_energy_retained_wh(t.energy_retained_wh);
 
     msg.set_load_power_w(t.load_power_w);
+    msg.set_load_current_ma10(t.load_current_ma10);
 
     msg.set_pv_voltage_mv(t.pv_voltage_mv);
     msg.set_pv_target_voltage_mv(t.pv_target_mv);
@@ -62,14 +63,16 @@
     msg.set_average_length_min(t.avg_nightlength_min);
 
     msg.set_led_voltage_mv(t.led_voltage_mv);
-    msg.set_led_current_ma10(t.led_current_ma);
+    msg.set_led_current_ma10(t.led_current_ma10);
     msg.set_led_power_w(t.led_power_w);
 
     msg.set_load_state_mask(t.load_state_raw);
+    msg.set_charge_state_mask(t.charge_state_raw);
     msg.set_led_status(static_cast<mppt::LedStatus>(t.led_status));
 
     msg.set_fault_mask(t.fault_flags.to_bitmask());
     msg.set_flags(t.to_bitmask());
+
     return msg;
 }
 
@@ -82,9 +85,9 @@
     out.set_vpv_max_mv(e.vpv_max_mv);
     out.set_ah_charge_mah(e.ah_charge_mah);
     out.set_ah_load_mah(e.ah_load_mah);
-    out.set_il_max_ma10(e.il_max_ma);
-    out.set_ipv_max_ma10(e.ipv_max_ma);
-    out.set_soc_pct(e.soc_pct);
+    out.set_il_max_ma(e.il_max_ma);
+    out.set_ipv_max_ma(e.ipv_max_ma);
+    out.set_soc_pct(static_cast<uint32_t>(e.soc_pct));
     out.set_ext_temp_max_c(e.ext_temp_max_c);
     out.set_ext_temp_min_c(e.ext_temp_min_c);
     out.set_nightlength_min(e.nightlength_min);
@@ -140,13 +143,14 @@
                                                   std::time_t           ts) -> mppt::DeviceInfo {
     mppt::DeviceInfo msg;
     msg.set_production_date(cfg.production_date);
-    msg.set_device_type(cfg.device_id);
     msg.set_hw_version(cfg.hw_version);
     msg.set_firmware_version(fw_version);
+    msg.set_device_type(cfg.device_id);
     msg.set_equalization_voltage_mv(cfg.equalization_mv);
     msg.set_boost_voltage_mv(cfg.boost_mv);
     msg.set_float_voltage_mv(cfg.float_mv);
     msg.set_temp_comp_mv_per_c(cfg.temp_comp_mv_per_c);
+    // Removed: msg.set_serial_number(cfg.serial_number); // Caused compilation error
     msg.set_published_at(static_cast<uint32_t>(ts));
     return msg;
 }
@@ -269,9 +273,9 @@ build_command_ack(std::string_view request_id, bool ok, std::string_view reason,
     }
 
     if (p.has_advanced_flags()) {
-        const uint32_t flags = p.advanced_flags();
-        s.dali_power_enable  = (flags & (1 << 0)) != 0;
-        s.alc_dimming_enable = (flags & (1 << 1)) != 0;
+        const uint32_t FLAGS = p.advanced_flags();
+        s.dali_power_enable  = (FLAGS & (1 << 0)) != 0;
+        s.alc_dimming_enable = (FLAGS & (1 << 1)) != 0;
     }
 
     return s;

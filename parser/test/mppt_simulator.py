@@ -221,10 +221,10 @@ class SimDevice:
             "vbat_max_mv": int(round(base_vbat + _rnd(0.2, 0.8, 3), 3) * 1000),
             "vpv_min_mv": int(round(max(0.0, base_vpv - _rnd(5.0, 10.0, 3)), 3) * 1000),
             "vpv_max_mv": int(base_vpv * 1000),
-            "ah_charge_mah": int(_rnd(10.0, 70.0, 1)),
-            "ah_load_mah": int(_rnd(8.0, 60.0, 1)),
-            "il_max_ma": int(_rnd(0.5, 12.0, 2) * 10),
-            "ipv_max_ma": int(_rnd(1.0, 10.0, 2) * 10),
+            "ah_charge_mah": _rnd(10.0, 70.0, 1),
+            "ah_load_mah": _rnd(8.0, 60.0, 1),
+            "il_max_ma10": int(_rnd(0.5, 12.0, 2) * 10),
+            "ipv_max_ma10": int(_rnd(1.0, 10.0, 2) * 10),
             "soc_pct": int(_rnd_int(5, 100)),
             "ext_temp_max_c": _rnd_int(18, 45),
             "ext_temp_min_c": _rnd_int(5, 20),
@@ -447,10 +447,10 @@ class SimDevice:
         entry.vbat_max_mv = row["vbat_max_mv"]
         entry.vpv_min_mv = row["vpv_min_mv"]
         entry.vpv_max_mv = row["vpv_max_mv"]
-        entry.ah_charge_mah = row["ah_charge_mah"]
-        entry.ah_load_mah = row["ah_load_mah"]
-        entry.il_max_ma = row["il_max_ma"]
-        entry.ipv_max_ma = row["ipv_max_ma"]
+        entry.ah_charge_mah = int(row["ah_charge_mah"])
+        entry.ah_load_mah = int(row["ah_load_mah"])
+        entry.il_max_ma10 = row["il_max_ma10"]
+        entry.ipv_max_ma10 = row["ipv_max_ma10"]
         entry.soc_pct = row["soc_pct"]
         entry.ext_temp_max_c = row["ext_temp_max_c"]
         entry.ext_temp_min_c = row["ext_temp_min_c"]

@@ -57,8 +57,8 @@ static auto parse_eeprom_settings(const std::vector<uint8_t> &data, EepromSettin
     // different battery types)
     cfg.settings.battery_type = static_cast<mppt::BatteryType>(
         std::clamp(static_cast<int>(byte_at(data, EEPROM_BATTERY_TYPE_OFFSET)), 0, 2));
-    cfg.battery_type =
-        battery_type_to_string(battery_type_name(static_cast<int>(*cfg.settings.battery_type), cfg.hw_version));
+    cfg.battery_type = battery_type_to_string(
+        battery_type_name(static_cast<int>(*cfg.settings.battery_type), cfg.hw_version));
 
     cfg.settings.capacity_ah = get_u16(data, EEPROM_CAPACITY_AH_OFFSET);
     cfg.battery_op_days      = get_u16(data, EEPROM_BAT_OP_DAYS_OFFSET);
@@ -102,11 +102,9 @@ static auto parse_eeprom_settings(const std::vector<uint8_t> &data, EepromSettin
 }
 
 // Generic parser for a single 16-byte log block (Daily or Monthly).
-static auto parse_log_block(const std::vector<uint8_t> &data,
-                            int                         offset,
-                            uint16_t                    index,
-                            uint32_t                    ah_multiplier,
-                            LogEntry                   &entry) -> bool {
+static auto
+parse_log_block(const std::vector<uint8_t> &data, int offset, uint16_t index, LogEntry &entry)
+    -> bool {
     if ((static_cast<size_t>(offset) + EEPROM_DAILY_BLOCK_SIZE) > data.size()) {
         return false;
     }
@@ -118,24 +116,39 @@ static auto parse_log_block(const std::vector<uint8_t> &data,
         return false;
     }
 
-    float soc_raw = byte_at(data, offset + 10) * 6.6F;
-
     entry.index           = index;
-    entry.vbat_max_mv     = byte_at(data, offset) * 100;
-    entry.vbat_min_mv     = byte_at(data, offset + 1) * 100;
-    entry.ah_charge_mah   = get_u16(data, offset + 2) * ah_multiplier;
-    entry.ah_load_mah     = get_u16(data, offset + 4) * ah_multiplier;
-    entry.vpv_max_mv      = byte_at(data, offset + 6) * 500;
-    entry.vpv_min_mv      = byte_at(data, offset + 7) * 500;
-    entry.il_max_ma       = byte_at(data, offset + 8) * 500;
-    entry.ipv_max_ma      = byte_at(data, offset + 9) * 500;
-    entry.soc_pct         = soc_raw >= 99.0F ? 100.0F : soc_raw;
+    entry.vbat_max_mv     = byte_at(data, offset);
+    entry.vbat_min_mv     = byte_at(data, offset + 1);
+    entry.ah_charge_mah   = get_u16(data, offset + 2);
+    entry.ah_load_mah     = get_u16(data, offset + 4);
+    entry.vpv_max_mv      = byte_at(data, offset + 6);
+    entry.vpv_min_mv      = byte_at(data, offset + 7);
+    entry.il_max_ma       = byte_at(data, offset + 8);
+    entry.ipv_max_ma      = byte_at(data, offset + 9);
+    entry.soc_pct         = byte_at(data, offset + 10);
     entry.ext_temp_max_c  = static_cast<int8_t>(byte_at(data, offset + 11));
     entry.ext_temp_min_c  = static_cast<int8_t>(byte_at(data, offset + 12));
-    entry.nightlength_min = byte_at(data, offset + 13) * 10;
+    entry.nightlength_min = byte_at(data, offset + 13);
     entry.state           = StateFlags::parse(get_u16(data, offset + 14));
 
     return true;
+}
+
+// Applies scaling factors to a LogEntry for human-readable printing.
+HumanLogEntry to_human_log(const LogEntry &e, uint32_t ah_multiplier) {
+    return {static_cast<float>(e.vbat_max_mv) * 100.0F / 1000.0F,
+            static_cast<float>(e.vbat_min_mv) * 100.0F / 1000.0F,
+            static_cast<float>(e.ah_charge_mah) * static_cast<float>(ah_multiplier) / 1000.0F,
+            static_cast<float>(e.ah_load_mah) * static_cast<float>(ah_multiplier) / 1000.0F,
+            static_cast<float>(e.vpv_max_mv) * 500.0F / 1000.0F,
+            static_cast<float>(e.vpv_min_mv) * 500.0F / 1000.0F,
+            static_cast<float>(e.il_max_ma) * 500.0F / 1000.0F,
+            static_cast<float>(e.ipv_max_ma) * 500.0F / 1000.0F,
+            (static_cast<float>(e.soc_pct) * 6.6F >= 99.0F ? 100.0F
+                                                           : static_cast<float>(e.soc_pct) * 6.6F),
+            e.ext_temp_max_c,
+            e.ext_temp_min_c,
+            e.nightlength_min * 10};
 }
 
 // Reads the daily circular buffer into daily_logs.
@@ -156,7 +169,7 @@ static void parse_daily_logs(const std::vector<uint8_t> &data,
         const int OFFSET  = EEPROM_DAILY_START_OFFSET + (BUF_IDX * EEPROM_DAILY_BLOCK_SIZE);
 
         LogEntry day;
-        if (parse_log_block(data, OFFSET, static_cast<uint16_t>(i + 1), 100, day)) {
+        if (parse_log_block(data, OFFSET, static_cast<uint16_t>(i + 1), day)) {
             daily_logs.entries[daily_logs.count++] = day;
         }
     }
@@ -180,7 +193,7 @@ static void parse_monthly_logs(const std::vector<uint8_t> &data,
         const int OFFSET  = EEPROM_MONTHLY_START_OFFSET + (BUF_IDX * EEPROM_MONTHLY_BLOCK_SIZE);
 
         LogEntry mo;
-        if (parse_log_block(data, OFFSET, static_cast<uint16_t>(i + 1), 1000, mo)) {
+        if (parse_log_block(data, OFFSET, static_cast<uint16_t>(i + 1), mo)) {
             monthly_logs.entries[monthly_logs.count++] = mo;
         }
     }

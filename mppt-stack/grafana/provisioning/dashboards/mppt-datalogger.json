@@ -2647,6 +2647,6 @@
   "timezone": "browser",
   "title": "📊 MPPT Solar - Datalogger",
   "uid": "mppt-datalogger",
-  "version": 3,
+  "version": 2,
   "weekStart": ""
 }

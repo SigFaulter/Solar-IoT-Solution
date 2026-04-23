@@ -49,9 +49,9 @@ void print_system_state(const PhocosTelemetry &t, const EepromSettings &settings
 
     std::cout << std::fixed << std::setprecision(3);
     row("Voltage", mv_to_v(t.battery_voltage_mv), " V");
-    row("SOC", std::to_string(t.battery_soc_pct) + " %");
+    row("SOC", std::to_string(static_cast<int>(t.battery_soc_pct)) + " %");
     std::cout << std::fixed << std::setprecision(2);
-    row("Charge Current", ma_to_a(t.charge_current_ma), " A");
+    row("Charge Current", ma_to_a(t.charge_current_ma10 * 10), " A");
     std::cout << std::fixed << std::setprecision(3);
     row("End of Charge Voltage", mv_to_v(t.battery_threshold_mv), " V");
     row("Charge Mode", charge_mode_from_state(t.charge_state_raw));
@@ -70,7 +70,7 @@ void print_system_state(const PhocosTelemetry &t, const EepromSettings &settings
     row("User Disconnect", yn(t.load_flags.user_disconnect));
     row("Over Current", yn(t.load_flags.over_current));
     std::cout << std::fixed << std::setprecision(2);
-    row("Current", ma_to_a(t.load_current_ma), " A");
+    row("Current", ma_to_a(t.load_current_ma10 * 10), " A");
     row("Power", std::to_string(t.load_power_w) + " W");
 
     std::cout << "\n[PV]\n";
@@ -86,7 +86,7 @@ void print_system_state(const PhocosTelemetry &t, const EepromSettings &settings
     std::cout << std::fixed << std::setprecision(3);
     row("Voltage", mv_to_v(t.led_voltage_mv), " V");
     std::cout << std::fixed << std::setprecision(2);
-    row("Current", ma_to_a(t.led_current_ma), " A");
+    row("Current", ma_to_a(t.led_current_ma10 * 10), " A");
     row("Power", std::to_string(t.led_power_w) + " W");
     row("Status", led_status_name(t.led_status));
     row("DALI Active", yn(t.dali_active != 0U));
@@ -243,19 +243,26 @@ static void print_log_entries(const LogEntry *entries,
               << "Flags\n";
     std::cout << "  " << std::string(140, '-') << "\n";
 
+    uint32_t ah_multiplier = 100;
+    if (std::strcmp(period_label, "Day") == 0) {
+        ah_multiplier = 100;
+    } else if (std::strcmp(period_label, "Month") == 0) {
+        ah_multiplier = 1000;
+    }
+
     for (std::size_t i = 0; i < count; ++i) {
-        const auto &e = entries[i];
-        std::cout << "    " << std::left << std::setw(6) << e.index << std::fixed
-                  << std::setprecision(1) << std::setw(11) << mv_to_v(e.vbat_min_mv)
-                  << std::setw(11) << mv_to_v(e.vbat_max_mv) << std::setw(11)
-                  << mah_to_ah(e.ah_charge_mah) << std::setw(11) << mah_to_ah(e.ah_load_mah)
-                  << std::setw(11) << mv_to_v(e.vpv_min_mv) << std::setw(11)
-                  << mv_to_v(e.vpv_max_mv) << std::setw(11) << ma_to_a(e.il_max_ma) << std::setw(11)
-                  << ma_to_a(e.ipv_max_ma) << std::setw(9) << std::fixed << std::setprecision(1)
-                  << e.soc_pct << std::setprecision(0) << std::setw(11)
+        auto        e   = to_human_log(entries[i], ah_multiplier);
+        const auto &raw = entries[i];
+        std::cout << "    " << std::left << std::setw(6) << raw.index << std::fixed
+                  << std::setprecision(1) << std::setw(11) << e.vbat_min_v << std::setw(11)
+                  << e.vbat_max_v << std::setw(11) << static_cast<double>(e.ah_charge_mah)
+                  << std::setw(11) << static_cast<double>(e.ah_load_mah) << std::setw(11)
+                  << e.vpv_min_v << std::setw(11) << e.vpv_max_v << std::setw(11) << e.il_max_ma
+                  << std::setw(11) << e.ipv_max_ma << std::setw(9) << std::fixed
+                  << std::setprecision(1) << e.soc_pct << std::setprecision(0) << std::setw(11)
                   << static_cast<int>(e.ext_temp_min_c) << std::setw(11)
                   << static_cast<int>(e.ext_temp_max_c) << std::setw(11) << std::setprecision(1)
-                  << e.nightlength_min / 60.0F << format_state_flags(e.state) << "\n";
+                  << e.nightlength_min / 60.0 << format_state_flags(raw.state) << "\n";
     }
 }
 
@@ -285,18 +292,4 @@ void print_data_logger(const DataloggerSummary &s,
 
     print_log_entries(days.entries.data(), days.count, "Daily Data", "Day");
     print_log_entries(months.entries.data(), months.count, "Monthly Data", "Month");
-}
-
-#include "json_builder.h"
-
-void print_info_json(const EepromSettings &settings) {
-    std::cout << "\n[JSON /info]\n" << build_info_json(settings).dump(2) << "\n";
-}
-
-void print_state_json(const PhocosTelemetry &t, const EepromSettings &settings, std::time_t ts) {
-    std::cout << "\n[JSON /state]\n" << build_telemetry_json(t, settings, ts).dump(2) << "\n";
-}
-
-void print_settings_json(const DeviceSettings &s, std::time_t ts) {
-    std::cout << "\n[JSON /settings]\n" << build_settings_json(s, ts).dump(2) << "\n";
 }

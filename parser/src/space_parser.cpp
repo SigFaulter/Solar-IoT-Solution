@@ -55,10 +55,10 @@ auto parse_phocos_line(std::string_view resp, PhocosTelemetry &t) -> bool {
 
         switch (field_idx + 1) {
             case FIELD_CHARGE_CURRENT_MA:
-                t.charge_current_ma = static_cast<uint32_t>(V * 10);
+                t.charge_current_ma10 = static_cast<uint32_t>(V);
                 break;
             case FIELD_LOAD_CURRENT_MA:
-                t.load_current_ma = static_cast<uint32_t>(V * 10);
+                t.load_current_ma10 = static_cast<uint32_t>(V);
                 break;
             case FIELD_PV_VOLTAGE_MV:
                 t.pv_voltage_mv = static_cast<uint32_t>(V);
@@ -122,7 +122,7 @@ auto parse_phocos_line(std::string_view resp, PhocosTelemetry &t) -> bool {
                 t.led_voltage_mv = static_cast<uint32_t>(V);
                 break;
             case FIELD_LED_CURRENT_MA:
-                t.led_current_ma = static_cast<uint32_t>(V * 10);
+                t.led_current_ma10 = static_cast<uint32_t>(V);
                 break;
             case FIELD_LED_STATUS:
                 t.led_status = static_cast<uint8_t>(V);
