@@ -179,10 +179,20 @@ auto build_datalogger_json(const EepromSettings    &settings,
              {"recorded_days", s.num_days},
              {"days_with_lvd", s.days_with_lvd},
              {"months_without_full_charge", s.months_without_full_charge},
-             {"avg_morning_soc_pct", round1(static_cast<double>(s.avg_morning_soc_pct))},
-             {"total_ah_charge", round1(static_cast<double>(s.total_ah_charge))},
-             {"total_ah_charge_ah", round1(static_cast<double>(s.total_ah_charge))},
-             {"total_ah_load", round1(static_cast<double>(s.total_ah_load))},
+             {"avg_morning_soc_pct",
+              (scaling_format == JsonScalingFormat::SCALED)
+                  ? (round1((s.num_days > 0) ? (static_cast<double>(s.avg_morning_soc_pct) * 6.6 /
+                                                static_cast<double>(s.num_days))
+                                             : 0.0))
+                  : static_cast<double>(s.avg_morning_soc_pct)},
+             {"total_ah_charge",
+              (scaling_format == JsonScalingFormat::SCALED)
+                  ? static_cast<double>(s.total_ah_charge) / 10.0
+                  : static_cast<double>(s.total_ah_charge)},
+             {"total_ah_load",
+              (scaling_format == JsonScalingFormat::SCALED)
+                  ? static_cast<double>(s.total_ah_load) / 10.0
+                  : static_cast<double>(s.total_ah_load)},
              {"daily",
               log_entries_to_json(days.entries.data(), days.count, "day", false, scaling_format)},
              {"monthly",

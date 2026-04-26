@@ -219,13 +219,10 @@ static auto parse_eeprom_bytes(const std::vector<uint8_t> &data,
     summary.days_with_lvd              = get_u16(data, S);
     summary.months_without_full_charge = byte_at(data, S + 2);
 
-    const float MORNING_SOC_SUM = get_u16(data, S + 4);
-    summary.total_ah_charge     = static_cast<float>(get_u32(data, S + 6)) / 10.0F;
-    summary.total_ah_load       = static_cast<float>(get_u32(data, S + 10)) / 10.0F;
+    summary.avg_morning_soc_pct = get_u16(data, S + 4);
+    summary.total_ah_charge     = get_u32(data, S + 6);
+    summary.total_ah_load       = get_u32(data, S + 10);
     summary.num_days            = get_u16(data, S + 14);
-
-    summary.avg_morning_soc_pct =
-        (summary.num_days > 0) ? (MORNING_SOC_SUM * 6.6F / summary.num_days) : 0.0F;
 
     parse_daily_logs(data, summary.num_days, daily_logs);
     parse_monthly_logs(data, summary.num_days, monthly_logs);

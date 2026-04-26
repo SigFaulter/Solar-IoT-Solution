@@ -315,6 +315,8 @@ struct LogEntry {
     uint8_t  soc_pct         = 0; // raw
     int8_t   ext_temp_max_c  = 0;
     int8_t   ext_temp_min_c  = 0;
+    uint16_t total_ah_charge = 0;
+    uint16_t total_ah_load   = 0;
     uint32_t nightlength_min = 0; // raw
 
     StateFlags state;
@@ -381,8 +383,8 @@ struct EepromSettings {
 struct DataloggerSummary {
     uint16_t days_with_lvd              = 0;
     uint8_t  months_without_full_charge = 0;
-    float    avg_morning_soc_pct        = 0;
-    float    total_ah_charge            = 0;
-    float    total_ah_load              = 0;
+    uint16_t avg_morning_soc_pct        = 0;
+    uint32_t total_ah_charge            = 0;
+    uint32_t total_ah_load              = 0;
     uint16_t num_days                   = 0;
 };
