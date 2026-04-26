@@ -282,13 +282,17 @@ void print_data_logger(const DataloggerSummary &s,
 
     std::cout << "\n[Charge]\n";
     std::cout << std::fixed << std::setprecision(1);
-    row("SOC in the Morning", s.avg_morning_soc_pct, " %");
-    row("Charge", s.total_ah_charge, " Ah");
+    row("SOC in the Morning",
+        (s.num_days > 0)
+            ? (static_cast<double>(s.avg_morning_soc_pct) * 6.6F / static_cast<float>(s.num_days))
+            : 0.0F,
+        " %");
+    row("Charge", static_cast<double>(s.total_ah_charge) / 10.0F, " Ah");
 
     std::cout << "\n[Discharge]\n";
     row("Days with Load Disconnect", s.days_with_lvd);
     row("Months Without Full Charge", static_cast<int>(s.months_without_full_charge));
-    row("Discharge", s.total_ah_load, " Ah");
+    row("Discharge", static_cast<double>(s.total_ah_load) / 10.0F, " Ah");
 
     print_log_entries(days.entries.data(), days.count, "Daily Data", "Day");
     print_log_entries(months.entries.data(), months.count, "Monthly Data", "Month");

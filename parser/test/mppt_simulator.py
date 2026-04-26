@@ -414,7 +414,7 @@ class SimDevice:
         msg.external_temp_c = int(self.temp_ext)
         msg.controller_op_days = 350
         msg.battery_voltage_mv = int(self.vbat * 1000)
-        msg.battery_soc_pct = self.soc
+        msg.battery_soc_pct = int(self.soc)
         msg.charge_current_ma10 = int(self.ichg * 100)
         msg.charge_power_w = int(self.ichg * self.vbat)
         msg.end_of_charge_voltage_mv = int(14.0 * 1000)
