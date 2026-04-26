@@ -1,0 +1,45 @@
+--- a/esp_node/src/space_parser.cpp
++++ b/esp_node/src/space_parser.cpp
+@@ -62,23 +62,29 @@ bool parse_eeprom_line(const char *line, EepromData &out) {
+   const char *p = line;
+   while (*p == '!' || *p == ' ')
+     p++;
+ 
+-  static uint8_t bytes[2048];
++  static uint8_t bytes[2048]; // static to avoid stack pressure on ESP32
+   int byte_count = 0;
+ 
+   while (*p && byte_count < (int)sizeof(bytes)) {
+-    while (*p == ';' || *p == ' ')
+-      p++;
++    while (*p == ' ') p++;
+     if (!*p || *p == '\r' || *p == '\n')
+       break;
+ 
+-    char hex[3] = {0, 0, 0};
+-    hex[0] = *p++;
+-    if (*p && *p != ';' && *p != '\r' && *p != '\n')
+-      hex[1] = *p++;
+-    bytes[byte_count++] = static_cast<uint8_t>(strtol(hex, nullptr, 16));
++    // Consume one semicolon-delimited field (max 3 chars: e.g. "F2" or "255")
++    char field[4] = {0};
++    int  fi = 0;
++    while (*p && *p != ';' && *p != '\r' && *p != '\n' && fi < 3)
++      field[fi++] = *p++;
++    if (*p == ';') p++; // consume delimiter
++
++    if (fi == 0) continue;
++
++    // Fields are hex (1-2 chars) or decimal. Protocol uses hex bytes.
++    bool is_hex = true;
++    for (int i = 0; i < fi; i++) {
++      char c = field[i];
++      if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) {
++        is_hex = false;
++        break;
++      }
++    }
++    bytes[byte_count++] = (uint8_t)strtol(field, nullptr, is_hex ? 16 : 10);
+   }
+ 
+   if (byte_count < 144)

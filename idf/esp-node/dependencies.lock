@@ -1,0 +1,24 @@
+dependencies:
+  idf:
+    source:
+      type: idf
+    version: 6.0.0
+  livekit/nanopb:
+    component_hash: 5b3bd915d2eb2ad1a7bb4a3ca655c40f31bab5f4f48e75ec04e300dc9ab78f4d
+    dependencies: []
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 0.4.9
+  nimble_peripheral_utils:
+    dependencies: []
+    source:
+      path: ../../../../.espressif/v6.0/esp-idf/examples/bluetooth/nimble/common/nimble_peripheral_utils
+      type: local
+    version: '*'
+direct_dependencies:
+- livekit/nanopb
+- nimble_peripheral_utils
+manifest_hash: b17466d7398c2f30a704ed73c9c2f56dfa794ff6f95997c0a5b9cb64a3a9da86
+target: esp32
+version: 3.0.0

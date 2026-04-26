@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cinttypes>
 
 static uint16_t u16be(const uint8_t *b, int off) {
   return static_cast<uint16_t>((b[off] << 8) | b[off + 1]);
@@ -142,10 +143,10 @@ bool parse_space_line(const char *line, SpaceTelemetry &out) {
     }
   }
 
-  printf("[DEBUG] Parsed Space V%d: PV=%umV Bat=%umV IChg=%umA ILd=%umA "
+  printf("[DEBUG] Parsed Space V%d: PV=%" PRIu32 "mV Bat=%" PRIu32 "mV IChg=%" PRIu32 "mA ILd=%" PRIu32 "mA "
          "SOC=%u%% Temp=%dC/%dC Power=%uW/%uW\n",
          out.hw_version, out.pv_voltage_mv, out.battery_voltage_mv,
-         out.charge_current_ma10 * 10, out.load_current_ma10 * 10,
+         out.charge_current_ma10, out.load_current_ma10,
          out.battery_soc_pct, out.internal_temp_c, out.external_temp_c,
          out.charge_power_w, out.load_power_w);
 
@@ -310,7 +311,7 @@ bool parse_eeprom_line(const char *line, EepromData &out) {
   out.valid = true;
 
   printf("[DEBUG] Parsed EEPROM: SN=%02X%02X ID=%04X Type=%d Cap=%dAh "
-         "LVD=%umV/%umV Night=%dm/%dm Thres=%umV\n",
+         "LVD=%" PRIu16 "mV/%" PRIu16 "mV Night=%dm/%dm Thres=%" PRIu16 "mV\n",
          out.sn_hi, out.sn_lo, out.device_identifier, out.battery_type_idx,
          out.capacity_ah, out.lvd_voltage_mv, out.lvd_current_mv,
          out.evening_minutes, out.morning_minutes, out.night_threshold_mv);

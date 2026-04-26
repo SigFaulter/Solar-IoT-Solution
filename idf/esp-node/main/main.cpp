@@ -1,25 +1,56 @@
-#include <Arduino.h>
-#include <NimBLEDevice.h>
-#include <NimBLEServer.h>
-#include <esp_pm.h>
-#include <esp_sleep.h>
-#include <esp_wifi.h>
-#include <nvs_flash.h>
+#include <cstdio>
+#include <cstring>
+#include "esp_log.h"
+#include "nvs_flash.h"
+#include "esp_pm.h"
+#include "esp_timer.h"
+#include "esp_wifi.h"
+#include "esp_task_wdt.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+#include "nimble/nimble_port.h"
+#include "nimble/nimble_port_freertos.h"
+#include "host/ble_hs.h"
+#include "host/util/util.h"
+#include "services/gap/ble_svc_gap.h"
+#include "bleprph.h"
 
 #include "ble_transport.h"
-#include "esp_task_wdt.h"
 #include "mppt.pb.h"
 #include "pb_decode.h"
 #include "pb_encode.h"
 #include "proto_builder.h"
 #include "space_parser.h"
 
-static constexpr char SVC_UUID[] = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
-static constexpr char TX_UUID[] = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
-static constexpr char RX_UUID[] = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
+static const char *tag = "MPPT-Gateway";
+
+static uint16_t g_conn_handle = BLE_HS_CONN_HANDLE_NONE;
+static BleReassembler g_rx_asm;
+static bool g_subscribed = false;
+static bool g_burst_sent = false;
+
+static SpaceTelemetry g_tele{};
+static EepromData g_eeprom{};
+static bool g_tele_ok = false;
+static bool g_eeprom_ok = false;
+
+static uint8_t g_hw_version = 0;
+
+static mppt_DeviceSettings g_override = mppt_DeviceSettings_init_zero;
+static bool g_has_override = false;
+
+static uint32_t g_last_fault_mask = 0xFFFFFFFFu;
+static uint8_t g_last_sent_days = 0;
+static uint8_t g_last_sent_months = 0;
+
+static uint32_t g_last_tele_ms = 0;
+static uint32_t g_last_eeprom_ms = 0;
+
+static constexpr uint32_t TELE_INTERVAL_MS = 5000;
+static constexpr uint32_t EEPROM_INTERVAL_MS = 15000;
 
 // Testing data
-// TODO: replace with real UART reads
 static const char SPACE_LINE[] =
     "00000;00000;00000;00000;00000;000060;018500;014500;00000;003;000;00017;"
     "00001;000;13800;14000;100;+21;+22;+25;0;0;00002;00001;00000;00720;00000;"
@@ -88,68 +119,12 @@ static const char EEPROM_LINE[] =
     "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
     "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
     "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
-    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
+    "00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;00;"
     "00;00;00;00;00;00;00;00;";
 
-static NimBLECharacteristic *g_tx_char = nullptr;
-static NimBLEServer *g_server = nullptr;
-static BleReassembler g_rx_asm;
-static bool g_connected = false;
-static bool g_subscribed = false;
-static bool g_burst_sent = false;
-
-static SpaceTelemetry g_tele{};
-static EepromData g_eeprom{};
-static bool g_tele_ok = false;
-static bool g_eeprom_ok = false;
-
-// Cached hardware version - set once from EEPROM, never changes for a given
-// device
-static uint8_t g_hw_version = 0;
-
-static mppt_DeviceSettings g_override = mppt_DeviceSettings_init_zero;
-static bool g_has_override = false;
-
-static uint32_t g_last_fault_mask = 0xFFFFFFFFu;
-static uint8_t g_last_sent_days = 0;
-static uint8_t g_last_sent_months = 0;
-static uint16_t g_last_recorded_days = 0;
-
-static uint32_t g_last_tele_ms = 0;
-static uint32_t g_last_eeprom_ms = 0;
-
-// TODO: change TELE INTERVAL to 30s
-// for daily and monthly detect on change/on count
-static constexpr uint32_t TELE_INTERVAL_MS = 5000;    // 5 seconds for testing
-static constexpr uint32_t EEPROM_INTERVAL_MS = 15000; // 15 seconds for testing
-
-// BLE connection parameters for power saving
-static constexpr uint16_t BLE_CONN_INTERVAL_MIN = 480;
-static constexpr uint16_t BLE_CONN_INTERVAL_MAX = 480;
-static constexpr uint16_t BLE_CONN_LATENCY = 0;  // no skipped events
-static constexpr uint16_t BLE_CONN_TIMEOUT = 10; // 3s supervision timeout
+static uint32_t millis() {
+    return (uint32_t)(esp_timer_get_time() / 1000);
+}
 
 // Proto helpers
 static void send_proto(MpptMsgType msg_type, const pb_msgdesc_t *fields,
@@ -157,11 +132,11 @@ static void send_proto(MpptMsgType msg_type, const pb_msgdesc_t *fields,
   static uint8_t buf[4096];
   pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
   if (!pb_encode(&stream, fields, proto_struct)) {
-    printf("[PROTO] encode error type=0x%02X: %s\n", msg_type,
+    ESP_LOGE(tag, "[PROTO] encode error type=0x%02X: %s", msg_type,
            PB_GET_ERROR(&stream));
     return;
   }
-  ble_send(g_tx_char, msg_type, buf, stream.bytes_written);
+  ble_send(g_conn_handle, msg_type, buf, stream.bytes_written);
 }
 
 static void publish_telemetry() {
@@ -184,7 +159,7 @@ static void publish_fault_status(bool force = false) {
 
 static void publish_device_info() {
   if (!g_tele_ok || !g_eeprom_ok) {
-    printf("[WARN] publish_device_info: data not ready");
+    ESP_LOGW(tag, "publish_device_info: data not ready");
     return;
   }
   auto msg = build_device_info(g_tele, g_eeprom, millis() / 1000u);
@@ -320,213 +295,217 @@ static void handle_command(const uint8_t *data, size_t len) {
   send_proto(MSG_ACK, mppt_CommandAck_fields, &ack);
 
   if (ok && cmd.which_payload == mppt_ControlCommand_set_settings_tag) {
-    delay(50);
+    vTaskDelay(pdMS_TO_TICKS(50));
     publish_device_settings();
   }
 }
 
-class ServerCb : public NimBLEServerCallbacks {
-  void onConnect(NimBLEServer *server, NimBLEConnInfo &connInfo) override {
-    g_connected = true;
-    g_burst_sent = false;
-    g_last_sent_days = 0;
-    g_last_sent_months = 0;
-    NimBLEDevice::setPower(ESP_PWR_LVL_N0);
-    server->updateConnParams(connInfo.getConnHandle(), BLE_CONN_INTERVAL_MIN,
-                             BLE_CONN_INTERVAL_MAX, BLE_CONN_LATENCY,
-                             BLE_CONN_TIMEOUT);
-  }
-
-  void onDisconnect(NimBLEServer *server, NimBLEConnInfo &connInfo,
-                    int reason) override {
-    g_connected = false;
-    g_subscribed = false;
-
-    // Restore higher TX power for advertising so we're discoverable
-    NimBLEDevice::setPower(ESP_PWR_LVL_P3);
-
-    server->startAdvertising();
-    printf("[BLE] disconnected, reason=%d, advertising", reason);
-  }
-};
-
-class MyCharacteristicCallbacks : public NimBLECharacteristicCallbacks {
-  void onWrite(NimBLECharacteristic *ch, NimBLEConnInfo &) override {
-    auto val = ch->getValue();
-    if (g_rx_asm.feed((const uint8_t *)val.data(), val.length())) {
+static void on_nus_rx(const uint8_t *data, uint16_t len) {
+    if (g_rx_asm.feed(data, len)) {
       if (g_rx_asm.msg_type() == MSG_CMD) {
         handle_command(g_rx_asm.payload(), g_rx_asm.payload_len());
       }
     }
-  }
+}
 
-  void onSubscribe(NimBLECharacteristic *ch, NimBLEConnInfo &,
-                   uint16_t subValue) override {
-    if (ch->getUUID() == NimBLEUUID(TX_UUID)) {
-      g_subscribed = (subValue > 0);
-      printf("[BLE] TX subscribed: %s\n", g_subscribed ? "YES" : "NO");
+static uint8_t g_own_addr_type;
+void ble_store_config_init(void);
+
+static void ble_app_advertise(void);
+
+static int ble_app_gap_event(struct ble_gap_event *event, void *arg) {
+    switch (event->type) {
+    case BLE_GAP_EVENT_CONNECT:
+        if (event->connect.status == 0) {
+            g_conn_handle = event->connect.conn_handle;
+            g_burst_sent = false;
+            g_last_sent_days = 0;
+            g_last_sent_months = 0;
+            ESP_LOGI(tag, "Connected");
+        } else {
+            ble_app_advertise();
+        }
+        break;
+
+    case BLE_GAP_EVENT_DISCONNECT:
+        g_conn_handle = BLE_HS_CONN_HANDLE_NONE;
+        g_subscribed = false;
+        ESP_LOGI(tag, "Disconnected; reason=%d", event->disconnect.reason);
+        ble_app_advertise();
+        break;
+
+    case BLE_GAP_EVENT_SUBSCRIBE:
+        if (event->subscribe.attr_handle == g_nus_tx_char_handle) {
+            g_subscribed = event->subscribe.cur_notify;
+            ESP_LOGI(tag, "TX Subscribed: %d", g_subscribed);
+        }
+        break;
+        
+    case BLE_GAP_EVENT_MTU:
+        ESP_LOGI(tag, "MTU updated: %d", event->mtu.value);
+        break;
     }
-  }
-};
-
-// Stubs for real RS485 polling (
-static void repoll_telemetry() {
-  // TODO: send Space command over UART2, parse response into g_tele
+    return 0;
 }
 
-static bool repoll_eeprom() {
-  // TODO: send '!' over UART2, read response into g_eeprom; return true on
-  // change
-  return false;
-}
+static void ble_app_advertise(void) {
+    struct ble_gap_adv_params adv_params;
+    struct ble_hs_adv_fields fields;
+    int rc;
 
-void vMonitoringTask(void *pvParameters) {
-  while (true) {
-    printf("[MONITOR] Heap: Free=%u, MinFree=%u\n", esp_get_free_heap_size(),
-           esp_get_minimum_free_heap_size());
-    vTaskDelay(pdMS_TO_TICKS(10000));
-  }
-}
+    memset(&fields, 0, sizeof fields);
+    fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
+    fields.tx_pwr_lvl_is_present = 1;
+    fields.tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO;
 
-static void vUartPollingTask(void *pvParameters) {
-  esp_task_wdt_add(NULL);
-  for (;;) {
-    // Feed the WDT
-    esp_task_wdt_reset();
+    const char *name = "MPPT-Gateway";
+    fields.name = (uint8_t *)name;
+    fields.name_len = strlen(name);
+    fields.name_is_complete = 1;
 
-    // Perform UART polling
-    // TODO: replace stubs with actual hardware UART reads
-    repoll_telemetry();
-    if (repoll_eeprom()) {
-      // Handle EEPROM update
+    rc = ble_gap_adv_set_fields(&fields);
+    if (rc != 0) {
+        ESP_LOGE(tag, "error setting advertisement data; rc=%d", rc);
+        return;
     }
 
-    vTaskDelay(pdMS_TO_TICKS(1000));
-  }
-}
+    memset(&adv_params, 0, sizeof adv_params);
+    adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
+    adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
+    // Match Arduino intervals: 1600 * 0.625ms = 1000ms
+    adv_params.itvl_min = 1600;
+    adv_params.itvl_max = 1600;
 
-void setup() {
-  Serial.begin(115200);
-
-  nvs_flash_init();
-  esp_wifi_stop();
-  esp_wifi_deinit();
-
-  esp_pm_config_esp32_t pm_config = {
-      .max_freq_mhz = 80,
-      .min_freq_mhz = 10,
-      .light_sleep_enable = true,
-  };
-  esp_pm_configure(&pm_config);
-
-  esp_task_wdt_init(10, true);
-  esp_task_wdt_add(NULL);
-
-  xTaskCreate(vMonitoringTask, "MONITOR", 2048, NULL, 1, NULL);
-  // xTaskCreate(vUartPollingTask, "UART", 4096, NULL, 5, NULL);
-
-  g_tele_ok = parse_space_line(SPACE_LINE, g_tele);
-  g_eeprom_ok = parse_eeprom_line(EEPROM_LINE, g_eeprom);
-
-  // Cache hw_version from EEPROM (authoritative), Falls back to space line.
-  if (g_eeprom_ok && g_eeprom.device_identifier != 0) {
-    g_hw_version = ((g_eeprom.device_identifier & 0xFF) == 0x52) ? 2 : 3;
-  } else if (g_tele_ok) {
-    g_hw_version = g_tele.hw_version;
-  } else {
-    g_hw_version = 3;
-  }
-
-  // Stamp cached version into tele/eeprom so proto_builder uses it
-  g_tele.hw_version = g_hw_version;
-
-  NimBLEDevice::init("MPPT-Gateway");
-  NimBLEDevice::setMTU(247); // TODO: play with MTU further, could be increased
-
-  // High TX power only during advertising, reduced on connect
-  NimBLEDevice::setPower(ESP_PWR_LVL_P3);
-
-  g_server = NimBLEDevice::createServer();
-  g_server->setCallbacks(new ServerCb());
-
-  auto *cb = new MyCharacteristicCallbacks();
-  auto *svc = g_server->createService(SVC_UUID);
-
-  g_tx_char = svc->createCharacteristic(TX_UUID, NIMBLE_PROPERTY::NOTIFY |
-                                                     NIMBLE_PROPERTY::READ);
-  g_tx_char->setCallbacks(cb);
-
-  auto *rx_char = svc->createCharacteristic(
-      RX_UUID, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
-  rx_char->setCallbacks(cb);
-
-  auto *adv = NimBLEDevice::getAdvertising();
-  adv->addServiceUUID(SVC_UUID);
-  adv->enableScanResponse(true);
-  adv->setMinInterval(1600);
-  adv->setMaxInterval(1600);
-  adv->start();
-}
-
-void loop() {
-  esp_task_wdt_reset();
-
-  if (!g_connected || !g_subscribed) {
-    if (!g_connected) {
-      g_subscribed = false;
-      g_burst_sent = false;
+    rc = ble_gap_adv_start(g_own_addr_type, NULL, BLE_HS_FOREVER,
+                           &adv_params, ble_app_gap_event, NULL);
+    if (rc != 0) {
+        ESP_LOGE(tag, "error enabling advertisement; rc=%d", rc);
+        return;
     }
-    vTaskDelay(pdMS_TO_TICKS(500));
-    return;
-  }
+}
 
-  const uint32_t now = millis();
+static void ble_app_on_sync(void) {
+    int rc = ble_hs_id_infer_auto(0, &g_own_addr_type);
+    if (rc != 0) {
+        ESP_LOGE(tag, "error determining address type; rc=%d", rc);
+        return;
+    }
+    ble_app_advertise();
+}
 
-  if (!g_burst_sent) {
-    // TOSO: Re-poll UART in production
+void ble_host_task(void *param) {
+    nimble_port_run();
+    nimble_port_freertos_deinit();
+}
+
+static void main_loop_task(void *pvParameters) {
+    esp_task_wdt_add(NULL);
+    for (;;) {
+        esp_task_wdt_reset();
+        if (g_conn_handle == BLE_HS_CONN_HANDLE_NONE || !g_subscribed) {
+            if (g_conn_handle == BLE_HS_CONN_HANDLE_NONE) {
+                g_subscribed = false;
+                g_burst_sent = false;
+            }
+            vTaskDelay(pdMS_TO_TICKS(500));
+            continue;
+        }
+// ... rest of main_loop_task
+
+        const uint32_t now = millis();
+
+        if (!g_burst_sent) {
+            g_tele_ok = parse_space_line(SPACE_LINE, g_tele);
+            g_eeprom_ok = parse_eeprom_line(EEPROM_LINE, g_eeprom);
+            g_tele.hw_version = g_hw_version;
+
+            publish_device_info();
+            vTaskDelay(pdMS_TO_TICKS(50));
+            publish_device_settings();
+            vTaskDelay(pdMS_TO_TICKS(50));
+            publish_fault_status(true);
+            vTaskDelay(pdMS_TO_TICKS(50));
+            publish_datalog(true);
+
+            g_burst_sent = true;
+            g_last_tele_ms = now;
+            g_last_eeprom_ms = now;
+            continue;
+        }
+
+        if (now - g_last_tele_ms >= TELE_INTERVAL_MS) {
+            g_last_tele_ms = now;
+            // Stub repoll
+            g_tele_ok = parse_space_line(SPACE_LINE, g_tele);
+            g_tele.hw_version = g_hw_version;
+            if (g_tele_ok) {
+                publish_telemetry();
+                publish_fault_status();
+            }
+        }
+
+        if (now - g_last_eeprom_ms >= EEPROM_INTERVAL_MS) {
+            g_last_eeprom_ms = now;
+            // Stub repoll (always true in this version for simplicity)
+            g_eeprom_ok = parse_eeprom_line(EEPROM_LINE, g_eeprom);
+            if (g_eeprom_ok) {
+                publish_datalog(false);
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
+}
+
+extern "C" void app_main(void) {
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+
+    esp_wifi_stop();
+
+    // Configure power management
+    esp_pm_config_t pm_config = {
+        .max_freq_mhz = 80,
+        .min_freq_mhz = 10,
+        .light_sleep_enable = true,
+    };
+    ESP_ERROR_CHECK(esp_pm_configure(&pm_config));
+
+    nimble_port_init();
+    ble_hs_cfg.sync_cb = ble_app_on_sync;
+    
+    gatt_svr_init();
+    gatt_svr_set_rx_cb(on_nus_rx);
+    ble_svc_gap_device_name_set("MPPT-Gateway");
+
+    /* XXX Need to have template for store */
+    ble_store_config_init();
+
+    nimble_port_freertos_init(ble_host_task);
+
+    // Initialize WDT
+    esp_task_wdt_config_t wdt_config = {
+        .timeout_ms = 10000,
+        .idle_core_mask = (1 << 0), // Watch core 0 idle task
+        .trigger_panic = true,
+    };
+    esp_task_wdt_reconfigure(&wdt_config);
+
     g_tele_ok = parse_space_line(SPACE_LINE, g_tele);
     g_eeprom_ok = parse_eeprom_line(EEPROM_LINE, g_eeprom);
 
-    // Propagate cached hw_version after re-parse
+    if (g_eeprom_ok && g_eeprom.device_identifier != 0) {
+        g_hw_version = ((g_eeprom.device_identifier & 0xFF) == 0x52) ? 2 : 3;
+    } else if (g_tele_ok) {
+        g_hw_version = g_tele.hw_version;
+    } else {
+        g_hw_version = 3;
+    }
     g_tele.hw_version = g_hw_version;
 
-    publish_device_info();
-    vTaskDelay(pdMS_TO_TICKS(50));
-    publish_device_settings();
-    vTaskDelay(pdMS_TO_TICKS(50));
-    publish_fault_status(/*force=*/true);
-    vTaskDelay(pdMS_TO_TICKS(50));
-    publish_datalog(/*send_all=*/true);
-
-    g_burst_sent = true;
-    g_last_tele_ms = now;
-    g_last_eeprom_ms = now;
-    return;
-  }
-
-  if (now - g_last_tele_ms >= TELE_INTERVAL_MS) {
-    g_last_tele_ms = now;
-    repoll_telemetry();
-    // In test mode: re-parse stub line
-    g_tele_ok = parse_space_line(SPACE_LINE, g_tele);
-    g_tele.hw_version = g_hw_version; // keep cached version
-    if (g_tele_ok) {
-      publish_telemetry();
-      publish_fault_status();
-    }
-  }
-
-  if (now - g_last_eeprom_ms >= EEPROM_INTERVAL_MS) {
-    g_last_eeprom_ms = now;
-    // Only re-parse if UART indicates new data (repoll_eeprom returns true)
-    if (repoll_eeprom()) {
-      g_eeprom_ok = parse_eeprom_line(EEPROM_LINE, g_eeprom);
-      if (g_eeprom_ok) {
-        publish_datalog(/*send_all=*/false);
-      }
-    }
-  }
-
-  esp_task_wdt_reset();
-  vTaskDelay(pdMS_TO_TICKS(50));
+    xTaskCreate(main_loop_task, "main_loop", 8192, NULL, 5, NULL);
 }
