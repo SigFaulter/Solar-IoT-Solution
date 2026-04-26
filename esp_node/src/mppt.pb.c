@@ -27,19 +27,10 @@ PB_BIND(mppt_DataloggerPayload, mppt_DataloggerPayload, AUTO)
 PB_BIND(mppt_ControlCommand, mppt_ControlCommand, AUTO)
 
 
-PB_BIND(mppt_ClearDatalogger, mppt_ClearDatalogger, AUTO)
-
-
 PB_BIND(mppt_SwitchLoad, mppt_SwitchLoad, AUTO)
 
 
 PB_BIND(mppt_CommandAck, mppt_CommandAck, AUTO)
-
-
-PB_BIND(mppt_DeviceSnapshot, mppt_DeviceSnapshot, AUTO)
-
-
-PB_BIND(mppt_FleetSummary, mppt_FleetSummary, AUTO)
 
 
 

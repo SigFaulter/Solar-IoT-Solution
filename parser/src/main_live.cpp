@@ -255,18 +255,6 @@ static void handle_cmd_payload(int                   fd,
         return;
     }
 
-    if (cmd.has_clear_datalogger()) {
-        drain_until_quiet(fd, 80);
-        // Unlock EEPROM for 0x3C seconds then clear datalogger counter
-        const bool UNLOCK = send_ampersand_command(fd, "&GAA3C00");
-        usleep(50'000);
-        const bool        CLEAR = UNLOCK && send_ampersand_command(fd, "&KAD00");
-        const std::time_t TS    = current_timestamp();
-        publish_ack(mqtt, ack_topic, REQUEST_ID, CLEAR, CLEAR ? "ok" : "serial write failed", TS);
-        std::cerr << "[cmd] ClearDatalogger -> " << (CLEAR ? "ok" : "FAILED") << "\n";
-        return;
-    }
-
     if (!cmd.has_set_settings()) {
         const std::time_t TS = current_timestamp();
         publish_ack(mqtt, ack_topic, REQUEST_ID, false, "unknown payload type", TS);
