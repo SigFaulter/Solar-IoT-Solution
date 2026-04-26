@@ -213,42 +213,70 @@ class SimDevice:
         self.faults["battery_under_temp"] = self.temp_ext < 12.0
 
     def _daily_row(self, day: int) -> dict:
-        base_vbat = _rnd(12.0, 14.2, 3)
-        base_vpv = _rnd(8.0, 20.0, 3)
+        base_vbat_v = _rnd(12.0, 14.2)
+        base_vpv_v = _rnd(8.0, 20.0)
+        ah_chg = _rnd(1.0, 7.0)
+        ah_load = _rnd(0.8, 6.0)
+        il_max_a = _rnd(0.5, 12.0)
+        ipv_max_a = _rnd(1.0, 10.0)
+        soc = _rnd_int(5, 100)
+        nightlen_min = _rnd_int(540, 800)
+
         return {
             "index": day,
-            "vbat_min_mv": int(round(base_vbat - _rnd(0.5, 1.5, 3), 3) * 1000),
-            "vbat_max_mv": int(round(base_vbat + _rnd(0.2, 0.8, 3), 3) * 1000),
-            "vpv_min_mv": int(round(max(0.0, base_vpv - _rnd(5.0, 10.0, 3)), 3) * 1000),
-            "vpv_max_mv": int(base_vpv * 1000),
-            "ah_charge_mah": _rnd(10.0, 70.0, 1),
-            "ah_load_mah": _rnd(8.0, 60.0, 1),
-            "il_max_ma10": int(_rnd(0.5, 12.0, 2) * 10),
-            "ipv_max_ma10": int(_rnd(1.0, 10.0, 2) * 10),
-            "soc_pct": int(_rnd_int(5, 100)),
+            "vbat_min_mv": max(
+                0, min(255, round((base_vbat_v - _rnd(0.5, 1.5)) / 0.1))
+            ),
+            "vbat_max_mv": max(
+                0, min(255, round((base_vbat_v + _rnd(0.1, 0.5)) / 0.1))
+            ),
+            "vpv_min_mv": max(
+                0, min(255, round(max(0.0, base_vpv_v - _rnd(5.0, 10.0)) / 0.5))
+            ),
+            "vpv_max_mv": max(0, min(255, round(base_vpv_v / 0.5))),
+            "ah_charge_mah": max(0, min(65535, round(ah_chg * 1000 / 100))),
+            "ah_load_mah": max(0, min(65535, round(ah_load * 1000 / 100))),
+            "il_max_ma": max(0, min(255, round(il_max_a / 0.5))),
+            "ipv_max_ma": max(0, min(255, round(ipv_max_a / 0.5))),
+            "soc_pct": max(0, min(15, round(soc / 6.6))),
             "ext_temp_max_c": _rnd_int(18, 45),
             "ext_temp_min_c": _rnd_int(5, 20),
-            "nightlength_min": _rnd_int(540, 800),
+            "nightlength_min": max(
+                0, min(255, round(nightlen_min / 10))
+            ),  # min -> raw (unit=10min)
             "flag_full_charge": day % 3 == 0,
             "flag_low_soc": random.random() > 0.8,
         }
 
     def _monthly_row(self, month: int) -> dict:
         season = 0.5 + 0.5 * math.sin(math.pi * (month - 1) / 11)
+        base_vbat_v = _rnd(11.5, 14.2)
+        base_vpv_v = _rnd(14.0, 22.0)
+        ah_chg = round(200.0 + season * 700.0 + _rnd(-50, 50))
+        ah_load = round(150.0 + season * 500.0 + _rnd(-30, 30))
+        il_max_a = _rnd(1.0, 4.0)
+        ipv_max_a = _rnd(2.0, 8.0)
+        soc = _rnd_int(20, 90)  # % direct
+        nightlen_min = _rnd_int(540, 720)
+
         return {
             "index": month,
-            "vbat_min_mv": int(_rnd(11.2, 12.5, 3) * 1000),
-            "vbat_max_mv": int(_rnd(13.5, 14.2, 3) * 1000),
-            "vpv_min_mv": int(_rnd(3.0, 7.0, 3) * 1000),
-            "vpv_max_mv": int(_rnd(17.0, 22.0, 3) * 1000),
-            "ah_charge_mah": int(round(200.0 + season * 700.0 + _rnd(-50, 50, 1), 1)),
-            "ah_load_mah": int(round(150.0 + season * 500.0 + _rnd(-30, 30, 1), 1)),
-            "il_max_ma": int(_rnd(1.0, 4.0, 2) * 10),
-            "ipv_max_ma": int(_rnd(2.0, 8.0, 2) * 10),
-            "soc_pct": int(_rnd_int(20, 90)),
+            "vbat_min_mv": max(
+                0, min(255, round((base_vbat_v - _rnd(0.5, 1.5)) / 0.1))
+            ),
+            "vbat_max_mv": max(
+                0, min(255, round((base_vbat_v + _rnd(0.1, 0.5)) / 0.1))
+            ),
+            "vpv_min_mv": max(0, min(255, round(_rnd(3.0, 7.0) / 0.5))),
+            "vpv_max_mv": max(0, min(255, round(base_vpv_v / 0.5))),
+            "ah_charge_mah": max(0, min(65535, ah_chg)),
+            "ah_load_mah": max(0, min(65535, ah_load)),
+            "il_max_ma": max(0, min(255, round(il_max_a / 0.5))),
+            "ipv_max_ma": max(0, min(255, round(ipv_max_a / 0.5))),
+            "soc_pct": soc,  # % raw direct
             "ext_temp_max_c": _rnd_int(20, 50),
             "ext_temp_min_c": _rnd_int(0, 20),
-            "nightlength_min": _rnd_int(540, 720),
+            "nightlength_min": max(0, min(255, round(nightlen_min / 10))),
             "flag_full_charge": month % 4 == 0,
             "flag_low_soc": random.random() > 0.8,
         }
@@ -324,7 +352,7 @@ class SimDevice:
                 flags_str.append("dali_power_enable")
             if ps.advanced_flags & (1 << 1):
                 flags_str.append("alc_dimming_enable")
-            
+
             decoded = f" ({', '.join(flags_str)})" if flags_str else ""
             updated.append(f"adv_flags=0x{ps.advanced_flags:02X}{decoded}")
 
@@ -357,7 +385,7 @@ class SimDevice:
     def get_settings_proto(self) -> bytes:
         msg = mppt_pb2.DeviceSettings()
         msg.timestamp = int(time.time())
-        msg.battery_type = mppt_pb2.BATTERY_LFP_MEDIUM_TEMP
+        msg.battery_type = mppt_pb2.BATTERY_LFP_LOW_TEMP
         msg.capacity_ah = 128
         msg.lvd_voltage_mv = 11000
         msg.lvd_mode = mppt_pb2.LVD_MODE_VOLTAGE
@@ -365,7 +393,7 @@ class SimDevice:
         msg.evening_minutes = 120
         msg.morning_minutes = 60
         msg.night_threshold_mv = 11500
-        msg.dimming_mode = mppt_pb2.NIGHT_MODE_ALWAYS_ON
+        msg.dimming_mode = mppt_pb2.NIGHT_MODE_D2D
         msg.evening_minutes_dimming = 0
         msg.morning_minutes_dimming = 0
         msg.dimming_pct = 100
@@ -385,11 +413,11 @@ class SimDevice:
         msg.internal_temp_c = int(self.temp_int)
         msg.external_temp_c = int(self.temp_ext)
         msg.controller_op_days = 350
-        msg.battery_voltage_mv = int(self.vbat)
-        msg.battery_soc_pct = int(self.soc)
+        msg.battery_voltage_mv = int(self.vbat * 1000)
+        msg.battery_soc_pct = self.soc
         msg.charge_current_ma10 = int(self.ichg * 100)
         msg.charge_power_w = int(self.ichg * self.vbat)
-        msg.end_of_charge_voltage_mv = int(self.vpv_target * 1000)
+        msg.end_of_charge_voltage_mv = int(14.0 * 1000)
         msg.charge_mode = CHARGE_MODE_MAP.get(
             self.charge_mode, mppt_pb2.CHARGE_MODE_DISABLED
         )
@@ -399,24 +427,25 @@ class SimDevice:
         msg.energy_retained_wh = 210
         msg.pv_voltage_mv = int(self.vpv * 1000)
         msg.pv_target_voltage_mv = int(self.vpv_target * 1000)
-        msg.load_current_ma10 = int(self.iload * 100)
+        msg.load_current_ma10 = int(self.iload * 100)  # A -> 10mA units
         msg.load_power_w = int(self.iload * self.vbat)
         msg.time_since_dusk_min = 0
         msg.average_length_min = 640
         msg.fault_mask = self.get_fault_mask()
 
         flags = 0
-        flags |= 1 << 0
+        flags |= 1 << 0  # battery_detected
         if self.charge_mode == "Float" and random.random() > 0.9:
-            flags |= 1 << 1
-        flags |= 1 << 2
+            flags |= 1 << 1  # is_night
+        flags |= 1 << 2  # load_on
         if self.soc < 10.0:
-            flags |= 1 << 4
-        flags |= 1 << 7
+            flags |= 1 << 4  # lvd_active
+        flags |= 1 << 7  # pv_detected
         msg.flags = flags
+
         if self.hw == 3:
             msg.led_voltage_mv = int(self.led_v * 1000)
-            msg.led_current_ma10 = int(self.led_i * 1000 / 10)
+            msg.led_current_ma10 = int(self.led_i * 100)
             msg.led_power_w = int(self.led_v * self.led_i)
             msg.led_status = mppt_pb2.LED_NORMAL
         return msg.SerializeToString()
@@ -449,8 +478,8 @@ class SimDevice:
         entry.vpv_max_mv = row["vpv_max_mv"]
         entry.ah_charge_mah = int(row["ah_charge_mah"])
         entry.ah_load_mah = int(row["ah_load_mah"])
-        entry.il_max_ma10 = row["il_max_ma10"]
-        entry.ipv_max_ma10 = row["ipv_max_ma10"]
+        entry.il_max_ma = row["il_max_ma"]
+        entry.ipv_max_ma = row["ipv_max_ma"]
         entry.soc_pct = row["soc_pct"]
         entry.ext_temp_max_c = row["ext_temp_max_c"]
         entry.ext_temp_min_c = row["ext_temp_min_c"]

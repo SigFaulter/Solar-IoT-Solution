@@ -54,7 +54,7 @@ void print_system_state(const PhocosTelemetry &t, const EepromSettings &settings
     row("Charge Current", ma_to_a(t.charge_current_ma10 * 10), " A");
     std::cout << std::fixed << std::setprecision(3);
     row("End of Charge Voltage", mv_to_v(t.battery_threshold_mv), " V");
-    row("Charge Mode", charge_mode_from_state(t.charge_state_raw));
+    row("Charge Mode", charge_mode_to_string(charge_mode_from_state(t.charge_state_raw)));
     row("Is Night", yn(t.charge_flags.is_night));
     row("Operation Time", std::to_string(t.bat_op_days) + " Days");
     row("Yesterday Total Input Energy", std::to_string(t.energy_in_daily_wh) + " Wh");

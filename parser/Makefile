@@ -16,7 +16,7 @@ PROTO_OBJ := $(BUILD)/mppt.pb.o
 
 COMMON_SRCS := $(SRC)/eeprom_parser.cpp $(SRC)/json_builder.cpp \
                $(SRC)/mqtt_client.cpp   $(SRC)/space_parser.cpp  \
-               $(SRC)/settings_parser.cpp $(SRC)/printer.cpp
+               $(SRC)/settings_parser.cpp $(SRC)/printer.cpp $(SRC)/proto_builder.cpp
 COMMON_OBJS := $(patsubst $(SRC)/%.cpp,$(BUILD)/%.o,$(COMMON_SRCS)) $(PROTO_OBJ)
 
 .PHONY: all proto clean distclean release

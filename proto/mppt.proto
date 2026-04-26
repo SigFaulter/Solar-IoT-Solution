@@ -203,12 +203,9 @@ message ControlCommand {
 
   oneof payload {
     DeviceSettings  set_settings     = 3;
-    ClearDatalogger clear_datalogger = 4;
-    SwitchLoad      switch_load      = 5;
+    SwitchLoad      switch_load      = 4;
   }
 }
-
-message ClearDatalogger {}
 
 // bit 0 = on/off  (avoids a bool field)
 message SwitchLoad {

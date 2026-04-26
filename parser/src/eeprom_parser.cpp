@@ -55,10 +55,13 @@ static auto parse_eeprom_settings(const std::vector<uint8_t> &data, EepromSettin
 
     // Battery type, names are controller-generation dependent (V2 vs V3 have
     // different battery types)
-    cfg.settings.battery_type = static_cast<mppt::BatteryType>(
-        std::clamp(static_cast<int>(byte_at(data, EEPROM_BATTERY_TYPE_OFFSET)), 0, 2));
-    cfg.battery_type = battery_type_to_string(
-        battery_type_name(static_cast<int>(*cfg.settings.battery_type), cfg.hw_version));
+    {
+        const int RAW_IDX =
+            std::clamp(static_cast<int>(byte_at(data, EEPROM_BATTERY_TYPE_OFFSET)), 0, 2);
+        // battery_type_name() applies the correct V2/V3 enum offset
+        cfg.settings.battery_type = battery_type_name(RAW_IDX, cfg.hw_version);
+        cfg.battery_type          = battery_type_to_string(*cfg.settings.battery_type);
+    }
 
     cfg.settings.capacity_ah = get_u16(data, EEPROM_CAPACITY_AH_OFFSET);
     cfg.battery_op_days      = get_u16(data, EEPROM_BAT_OP_DAYS_OFFSET);
