@@ -1,10 +1,12 @@
 #include "ble_transport.h"
 #include <cstring>
 #include <cstdio>
+#include <cstdlib>
 #include "host/ble_hs.h"
-#include "bleprph.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+
+extern uint16_t g_nus_tx_char_handle;
 
 void ble_send(uint16_t conn_handle,
               MpptMsgType           msg_type,
@@ -39,33 +41,20 @@ void ble_send(uint16_t conn_handle,
         const size_t take      = (remaining < chunk_max) ? remaining : chunk_max;
         const bool   is_last   = (offset + take >= total);
 
-        struct os_mbuf *om = ble_hs_mbuf_from_flat(NULL, 0); // Start with empty mbuf
+        uint8_t pkt[chunk_max + 1];
+        if (first && is_last)  pkt[0] = CHUNK_FIRST;
+        else if (first)        pkt[0] = CHUNK_FIRST;
+        else if (is_last)      pkt[0] = CHUNK_LAST;
+        else                   pkt[0] = CHUNK_CONT;
+        memcpy(pkt + 1, frame + offset, take);
+
+        struct os_mbuf *om = ble_hs_mbuf_from_flat(pkt, 1 + take);
         if (!om) break;
 
-        uint8_t tag;
-        // Single-chunk messages use CHUNK_FIRST only (per spec).
-        // Multi-chunk: first=CHUNK_FIRST, middle=CHUNK_CONT, last=CHUNK_LAST.
-        if (first && is_last)  tag = CHUNK_FIRST; // single chunk
-        else if (first)        tag = CHUNK_FIRST;
-        else if (is_last)      tag = CHUNK_LAST;
-        else                   tag = CHUNK_CONT;
-
-        os_mbuf_append(om, &tag, 1);
-        os_mbuf_append(om, frame + offset, take);
-
-        int rc = ble_gattc_notify_custom(conn_handle, g_nus_tx_char_handle, om);
+        int rc = ble_gatts_notify_custom(conn_handle, g_nus_tx_char_handle, om);
         if (rc != 0) {
             printf("[BLE] notify error: %d\n", rc);
-            // os_mbuf_free_chain(om); // ble_gattc_notify_custom takes ownership or frees on error? 
-            // Actually NimBLE usually frees mbuf on success/error in notify_custom.
-            break; 
-        }
-
-        offset += take;
-        first   = false;
-
-        if (!is_last) {
-            vTaskDelay(pdMS_TO_TICKS(10));
+            break;
         }
     }
     free(frame);

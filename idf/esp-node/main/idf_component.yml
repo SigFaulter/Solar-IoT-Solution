@@ -1,4 +1,2 @@
 dependencies:
-  nimble_peripheral_utils:
-    path: ${IDF_PATH}/examples/bluetooth/nimble/common/nimble_peripheral_utils
   livekit/nanopb: "^0.4.9"

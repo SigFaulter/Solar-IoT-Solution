@@ -1,5 +1,4 @@
 set(srcs "main.cpp"
-         "gatt_svr.c"
          "ble_transport.cpp"
          "proto_builder.cpp"
          "space_parser.cpp"
@@ -7,4 +6,4 @@ set(srcs "main.cpp"
 
 idf_component_register(SRCS "${srcs}"
                        INCLUDE_DIRS "."
-                       PRIV_REQUIRES nvs_flash bt nanopb esp_hw_support esp_timer esp_pm esp_wifi)
+                       PRIV_REQUIRES nvs_flash bt nanopb esp_hw_support esp_timer esp_pm)

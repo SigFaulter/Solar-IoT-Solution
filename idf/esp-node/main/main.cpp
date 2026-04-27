@@ -14,7 +14,6 @@
 #include "host/ble_hs.h"
 #include "host/util/util.h"
 #include "services/gap/ble_svc_gap.h"
-#include "bleprph.h"
 
 #include "ble_transport.h"
 #include "mppt.pb.h"
@@ -26,8 +25,84 @@
 static const char *tag = "MPPT-Gateway";
 
 static uint16_t g_conn_handle = BLE_HS_CONN_HANDLE_NONE;
+uint16_t g_nus_tx_char_handle;
 static BleReassembler g_rx_asm;
 static bool g_subscribed = false;
+
+// NUS UUIDs: 6E400001-B5A3-F393-E0A9-E50E24DCCA9E
+static const ble_uuid128_t g_nus_svc_uuid =
+    BLE_UUID128_INIT(0x9e, 0xca, 0xdc, 0x24, 0x0e, 0xe5, 0xa9, 0xe0,
+                     0x93, 0xf3, 0xa3, 0xb5, 0x01, 0x00, 0x40, 0x6e);
+
+static const ble_uuid128_t g_nus_rx_char_uuid =
+    BLE_UUID128_INIT(0x9e, 0xca, 0xdc, 0x24, 0x0e, 0xe5, 0xa9, 0xe0,
+                     0x93, 0xf3, 0xa3, 0xb5, 0x02, 0x00, 0x40, 0x6e);
+
+static const ble_uuid128_t g_nus_tx_char_uuid =
+    BLE_UUID128_INIT(0x9e, 0xca, 0xdc, 0x24, 0x0e, 0xe5, 0xa9, 0xe0,
+                     0x93, 0xf3, 0xa3, 0xb5, 0x03, 0x00, 0x40, 0x6e);
+
+static int gatt_svr_access(uint16_t conn_handle, uint16_t attr_handle,
+                           struct ble_gatt_access_ctxt *ctxt, void *arg);
+
+static const struct ble_gatt_svc_def g_gatt_svr_svcs[] = {
+    {
+        .type = BLE_GATT_SVC_TYPE_PRIMARY,
+        .uuid = &g_nus_svc_uuid.u,
+        .includes = NULL,
+        .characteristics = (struct ble_gatt_chr_def[]) {
+            {
+                .uuid = &g_nus_rx_char_uuid.u,
+                .access_cb = gatt_svr_access,
+                .arg = NULL,
+                .descriptors = NULL,
+                .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_WRITE_NO_RSP,
+                .min_key_size = 0,
+                .val_handle = NULL,
+                .cpfd = NULL,
+            },
+            {
+                .uuid = &g_nus_tx_char_uuid.u,
+                .access_cb = gatt_svr_access,
+                .arg = NULL,
+                .descriptors = NULL,
+                .flags = BLE_GATT_CHR_F_NOTIFY,
+                .min_key_size = 0,
+                .val_handle = &g_nus_tx_char_handle,
+                .cpfd = NULL,
+            },
+            {
+                .uuid = NULL,
+                .access_cb = NULL,
+                .arg = NULL,
+                .descriptors = NULL,
+                .flags = 0,
+                .min_key_size = 0,
+                .val_handle = NULL,
+                .cpfd = NULL,
+            }
+        },
+    },
+    {
+        .type = 0,
+        .uuid = NULL,
+        .includes = NULL,
+        .characteristics = NULL,
+    }
+};
+
+static void on_nus_rx(const uint8_t *data, uint16_t len);
+
+static int gatt_svr_access(uint16_t conn_handle, uint16_t attr_handle,
+                           struct ble_gatt_access_ctxt *ctxt, void *arg) {
+    if (ble_uuid_cmp(ctxt->chr->uuid, &g_nus_rx_char_uuid.u) == 0) {
+        if (ctxt->op == BLE_GATT_ACCESS_OP_WRITE_CHR) {
+            on_nus_rx(ctxt->om->om_data, ctxt->om->om_len);
+            return 0;
+        }
+    }
+    return BLE_ATT_ERR_UNLIKELY;
+}
 static bool g_burst_sent = false;
 
 static SpaceTelemetry g_tele{};
@@ -399,18 +474,19 @@ void ble_host_task(void *param) {
 }
 
 static void main_loop_task(void *pvParameters) {
-    esp_task_wdt_add(NULL);
+  ESP_ERROR_CHECK(esp_task_wdt_add(NULL));
+
     for (;;) {
         esp_task_wdt_reset();
         if (g_conn_handle == BLE_HS_CONN_HANDLE_NONE || !g_subscribed) {
             if (g_conn_handle == BLE_HS_CONN_HANDLE_NONE) {
+
                 g_subscribed = false;
                 g_burst_sent = false;
             }
             vTaskDelay(pdMS_TO_TICKS(500));
             continue;
         }
-// ... rest of main_loop_task
 
         const uint32_t now = millis();
 
@@ -465,8 +541,6 @@ extern "C" void app_main(void) {
     }
     ESP_ERROR_CHECK(ret);
 
-    esp_wifi_stop();
-
     // Configure power management
     esp_pm_config_t pm_config = {
         .max_freq_mhz = 80,
@@ -478,21 +552,24 @@ extern "C" void app_main(void) {
     nimble_port_init();
     ble_hs_cfg.sync_cb = ble_app_on_sync;
     
-    gatt_svr_init();
-    gatt_svr_set_rx_cb(on_nus_rx);
+    int rc;
+    rc = ble_gatts_count_cfg(g_gatt_svr_svcs);
+    assert(rc == 0);
+
+    rc = ble_gatts_add_svcs(g_gatt_svr_svcs);
+    assert(rc == 0);
+
     ble_svc_gap_device_name_set("MPPT-Gateway");
 
-    /* XXX Need to have template for store */
-    ble_store_config_init();
 
     nimble_port_freertos_init(ble_host_task);
 
-    // Initialize WDT
     esp_task_wdt_config_t wdt_config = {
         .timeout_ms = 10000,
-        .idle_core_mask = (1 << 0), // Watch core 0 idle task
+        .idle_core_mask = 0,
         .trigger_panic = true,
     };
+
     esp_task_wdt_reconfigure(&wdt_config);
 
     g_tele_ok = parse_space_line(SPACE_LINE, g_tele);
