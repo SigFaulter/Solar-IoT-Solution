@@ -7,17 +7,13 @@
 #include "freertos/task.h"
 
 extern uint16_t g_nus_tx_char_handle;
-
 void ble_send(uint16_t conn_handle,
-              MpptMsgType           msg_type,
-              const uint8_t        *payload,
-              size_t                len)
+              MpptMsgType msg_type,
+              const uint8_t *payload,
+              size_t len)
 {
-    if (conn_handle == BLE_HS_CONN_HANDLE_NONE) {
-        return;
-    }
+    if (conn_handle == BLE_HS_CONN_HANDLE_NONE) return;
 
-    // Build framed packet: [msg_type(1)] [payload_len_le(2)] [payload(N)]
     const size_t total = 3 + len;
     uint8_t *frame = (uint8_t *)malloc(total);
     if (!frame) return;
@@ -27,25 +23,23 @@ void ble_send(uint16_t conn_handle,
     frame[2] = static_cast<uint8_t>((len >> 8) & 0xFF);
     memcpy(frame + 3, payload, len);
 
-    // Get actual MTU for this connection. GATT overhead is 3 bytes.
     uint16_t peer_mtu = ble_att_mtu(conn_handle);
-    if (peer_mtu < 23) peer_mtu = 23; 
-    
-    const size_t chunk_max = peer_mtu - 4; // MTU - 3 (GATT) - 1 (Tag)
+    if (peer_mtu < 23) peer_mtu = 23;
+    const size_t chunk_max = peer_mtu - 4;
 
     size_t offset = 0;
-    bool   first  = true;
+    bool first = true;
 
     while (offset < total) {
         const size_t remaining = total - offset;
-        const size_t take      = (remaining < chunk_max) ? remaining : chunk_max;
-        const bool   is_last   = (offset + take >= total);
+        const size_t take = (remaining < chunk_max) ? remaining : chunk_max;
+        const bool is_last = (offset + take >= total);
 
-        uint8_t pkt[chunk_max + 1];
-        if (first && is_last)  pkt[0] = CHUNK_FIRST;
-        else if (first)        pkt[0] = CHUNK_FIRST;
-        else if (is_last)      pkt[0] = CHUNK_LAST;
-        else                   pkt[0] = CHUNK_CONT;
+        uint8_t pkt[512];
+        if (first && is_last)   pkt[0] = CHUNK_FIRST;
+        else if (first)         pkt[0] = CHUNK_FIRST;
+        else if (is_last)       pkt[0] = CHUNK_LAST;
+        else                    pkt[0] = CHUNK_CONT;
         memcpy(pkt + 1, frame + offset, take);
 
         struct os_mbuf *om = ble_hs_mbuf_from_flat(pkt, 1 + take);
@@ -53,8 +47,15 @@ void ble_send(uint16_t conn_handle,
 
         int rc = ble_gatts_notify_custom(conn_handle, g_nus_tx_char_handle, om);
         if (rc != 0) {
-            printf("[BLE] notify error: %d\n", rc);
+            ESP_LOGE("BLE", "notify rc=%d", rc);
             break;
+        }
+
+        offset += take;
+        first = false;
+
+        if (!is_last) {
+            vTaskDelay(pdMS_TO_TICKS(10));
         }
     }
     free(frame);
