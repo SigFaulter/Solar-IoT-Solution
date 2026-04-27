@@ -19,6 +19,7 @@ Containerised monitoring solution for MPPT solar charge controllers, based on **
 ```bash
 INFLUX_ADMIN_PASSWORD=your_strong_password
 INFLUX_TOKEN=your_token_for_node_red
+INFLUXDB_BUCKET_HISTORY=solar_history
 GRAFANA_ADMIN_PASSWORD=your_grafana_password
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
@@ -26,6 +27,7 @@ SMTP_USER=user@example.com
 SMTP_PASS=password
 ALERT_EMAIL=alerts@example.com
 NODE_RED_CREDENTIAL_SECRET=your_secret_key
+...
 ```
 
 **2. Start all services:**

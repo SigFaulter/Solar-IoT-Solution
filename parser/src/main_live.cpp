@@ -115,7 +115,7 @@ static void publish_all(MqttClient              &mqtt,
     }
 
     if (have_tele && tele.hw_version == 3) {
-        const uint32_t CURRENT_MASK = tele.to_bitmask();
+        const uint32_t CURRENT_MASK = tele.fault_flags.to_bitmask();
         if (CURRENT_MASK != g_last_fault_mask) {
             // We publish if there is ANY fault, OR if there WAS a fault and now there isn't (to
             // clear the retained message).
@@ -244,10 +244,15 @@ static void handle_cmd_payload(int                   fd,
 
     if (cmd.has_switch_load()) {
         const bool ON = (cmd.switch_load().flags() & 1U) != 0U;
-        // &K5500 = off, &K5501 = on
-        const std::string K_CMD = ON ? "&K5501" : "&K5500";
+        // &K550000 = off, &K550100 = on
+        const std::string K_CMD = ON ? "&K550100" : "&K550000";
+
         drain_until_quiet(fd, 80);
-        const bool        OK = send_ampersand_command(fd, K_CMD.c_str());
+        const bool OK = send_ampersand_command(fd, "&GAA3C00");
+        if (OK) {
+            usleep(10'000);
+            OK = send_ampersand_command(fd, K_CMD.c_str());
+        }
         const std::time_t TS = current_timestamp();
         publish_ack(mqtt, ack_topic, REQUEST_ID, OK, OK ? "ok" : "serial write failed", TS);
         std::cerr << "[cmd] SwitchLoad " << (ON ? "ON" : "OFF") << " -> " << (OK ? "ok" : "FAILED")

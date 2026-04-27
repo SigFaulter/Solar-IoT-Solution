@@ -176,5 +176,5 @@ auto parse_phocos_line(std::string_view resp, PhocosTelemetry &t) -> bool {
         ++field_idx;
     }
 
-    return field_idx >= expected && t.battery_voltage_mv != 0;
+    return field_idx >= expected;
 }

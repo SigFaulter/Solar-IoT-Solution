@@ -14,7 +14,7 @@
       }
     ]
   },
-  "description": "Historical datalogger - daily and monthly trends for each MPPT solar controller",
+  "description": "Real-time monitoring of all MPPT solar controllers - voltage, current, power, SOC, faults and LED output",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -23,10 +23,10 @@
       "icon": "dashboard",
       "tags": [],
       "targetBlank": false,
-      "title": "☀️ Live Telemetry",
-      "tooltip": "Real-time monitoring",
+      "title": "🖼️ Datalogger",
+      "tooltip": "Historical daily/monthly logs",
       "type": "link",
-      "url": "/d/mppt-solar/mppt-solar-live-telemetry"
+      "url": "/d/mppt-datalogger/mppt-solar-datalogger"
     }
   ],
   "panels": [
@@ -40,20 +40,32 @@
       },
       "id": 1,
       "panels": [],
-      "title": "📋 Device Summary - last 30-day period",
+      "title": "Fleet Overview",
       "type": "row"
     },
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "influxdb-solar-history"
+        "uid": "influxdb-solar"
       },
+      "description": "Live snapshot of all devices - last 30 min",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "decimals": 0,
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false,
+            "minWidth": 50
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -63,54 +75,433 @@
                 "value": 0
               }
             ]
-          },
-          "unit": "none"
+          }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Serial"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "View Datalogger",
+                    "url": "/d/mppt-datalogger?var-serial_number=${__value.text}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Mode"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "Boost": {
+                        "color": "#F5A623",
+                        "index": 2,
+                        "text": "Boost"
+                      },
+                      "Equalization": {
+                        "color": "#FF9830",
+                        "index": 3,
+                        "text": "Equalization"
+                      },
+                      "Float": {
+                        "color": "#5794F2",
+                        "index": 0,
+                        "text": "Float"
+                      },
+                      "MPP Tracking": {
+                        "color": "#73BF69",
+                        "index": 1,
+                        "text": "MPP Tracking"
+                      },
+                      "Night": {
+                        "color": "#8F3BB8",
+                        "index": 4,
+                        "text": "Night"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "V Bat"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "mvolt"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "basic",
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#F2495C",
+                      "value": 0
+                    },
+                    {
+                      "color": "#FF9830",
+                      "value": 11.8
+                    },
+                    {
+                      "color": "#FADE2A",
+                      "value": 12.4
+                    },
+                    {
+                      "color": "#73BF69",
+                      "value": 13
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SOC %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "basic",
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#F2495C",
+                      "value": 0
+                    },
+                    {
+                      "color": "#FF9830",
+                      "value": 20
+                    },
+                    {
+                      "color": "#FADE2A",
+                      "value": 40
+                    },
+                    {
+                      "color": "#73BF69",
+                      "value": 60
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "V PV"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "mvolt"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#808080",
+                      "value": 0
+                    },
+                    {
+                      "color": "#73BF69",
+                      "value": 5
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Chg W"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "watt"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Load W"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "watt"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Temp °C"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "celsius"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 4,
-        "w": 4,
+        "h": 9,
+        "w": 16,
         "x": 0,
         "y": 1
       },
-      "id": 10,
+      "id": 200,
       "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "noValue": "Select device",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "SOC %"
+          }
+        ]
       },
       "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "influxdb-solar-history"
+            "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_summary\")\n  |> filter(fn: (r) => r._field == \"recorded_days\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "from(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) =>\n      r._field == \"battery_voltage_mv\" or r._field == \"soc_pct\" or\n      r._field == \"charge_power_w\" or r._field == \"pv_voltage_mv\" or\n      r._field == \"load_power_w\" or r._field == \"external_temp_c\")\n  |> group(columns: [\"serial_number\", \"_field\"])\n  |> last()\n  |> group()\n  |> pivot(rowKey: [\"serial_number\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {serial_number: \"Serial\", battery_voltage_mv: \"V Bat\", soc_pct: \"SOC %\", pv_voltage_mv: \"V PV\", charge_power_w: \"Chg W\", load_power_w: \"Load W\", external_temp_c: \"Temp °C\"})\n  |> keep(columns: [\"Serial\", \"V Bat\", \"SOC %\", \"V PV\", \"Chg W\", \"Load W\", \"Temp °C\"])",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-solar"
+          },
+          "query": "from(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"charge_mode\")\n  |> group(columns: [\"serial_number\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({Serial: r.serial_number, Mode: r._value}))\n  |> keep(columns: [\"Serial\", \"Mode\"])",
+          "refId": "B"
         }
       ],
-      "title": "📅 Recorded Days",
-      "type": "stat"
+      "title": "📋 Device Status",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        }
+      ],
+      "type": "table"
     },
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "influxdb-solar-history"
+        "uid": "influxdb-solar"
+      },
+      "description": "Devices with at least one active fault right now",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Serial"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "View Datalogger",
+                    "url": "/d/mppt-datalogger?var-serial_number=${__value.text}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Alert"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#F2495C",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 1
+      },
+      "id": 201,
+      "options": {
+        "cellHeight": "sm",
+        "noValue": "✅ All devices fault-free",
+        "showHeader": true
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-solar"
+          },
+          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"faults\")\n  |> filter(fn: (r) => r._value == 1)\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> last()\n  |> map(fn: (r) => ({r with _field:\n      if r._field == \"battery_over_voltage\"   then \"Battery Over Voltage\"\n      else if r._field == \"pv_over_voltage\"   then \"PV Over Voltage\"\n      else if r._field == \"charge_over_current\" then \"Charge Over Current\"\n      else if r._field == \"lvd_active\"        then \"Battery Low (LVD)\"\n      else if r._field == \"over_discharge_current\" then \"Battery Over-Discharge\"\n      else if r._field == \"load_over_current\" then \"Load Over Current\"\n      else if r._field == \"battery_over_temp\" then \"Battery Over Temperature\"\n      else if r._field == \"battery_under_temp\" then \"Battery Under Temperature\"\n      else r._field\n  }))\n  |> group()\n  |> rename(columns: {serial_number: \"Serial\", _field: \"Alert\"})\n  |> keep(columns: [\"Serial\", \"Alert\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "⚠️ Active Alerts",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "id": 50,
+      "panels": [],
+      "title": "Live KPIs - single device",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-solar"
       },
       "fieldConfig": {
         "defaults": {
@@ -118,150 +509,6 @@
             "mode": "thresholds"
           },
           "decimals": 0,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#73BF69",
-                "value": 0
-              },
-              {
-                "color": "#FADE2A",
-                "value": 3
-              },
-              {
-                "color": "#F2495C",
-                "value": 7
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 4,
-        "y": 1
-      },
-      "id": 11,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "noValue": "-",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.4.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-solar-history"
-          },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_summary\")\n  |> filter(fn: (r) => r._field == \"days_with_lvd\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
-          "refId": "A"
-        }
-      ],
-      "title": "⚡ Days with LVD",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb-solar-history"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#73BF69",
-                "value": 0
-              },
-              {
-                "color": "#FADE2A",
-                "value": 1
-              },
-              {
-                "color": "#F2495C",
-                "value": 2
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 8,
-        "y": 1
-      },
-      "id": 12,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "noValue": "-",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.4.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-solar-history"
-          },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_summary\")\n  |> filter(fn: (r) => r._field == \"months_without_full_charge\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
-          "refId": "A"
-        }
-      ],
-      "title": "🌅 Months w/o Full Charge",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb-solar-history"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 1,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -291,15 +538,163 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 12,
-        "y": 1
+        "x": 0,
+        "y": 11
       },
-      "id": 13,
+      "id": 51,
       "options": {
         "colorMode": "background",
-        "graphMode": "none",
+        "graphMode": "area",
         "justifyMode": "center",
-        "noValue": "-",
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "noValue": "Select device",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto",
+        "textMode": "auto"
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-solar"
+          },
+          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"soc_pct\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "🔋 Battery SOC",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-solar"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": 0
+              },
+              {
+                "color": "#FF9830",
+                "value": 11.8
+              },
+              {
+                "color": "#FADE2A",
+                "value": 12.4
+              },
+              {
+                "color": "#73BF69",
+                "value": 13
+              }
+            ]
+          },
+          "unit": "mvolt"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 11
+      },
+      "id": 52,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "noValue": "Select device",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto",
+        "textMode": "auto"
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-solar"
+          },
+          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"battery_voltage_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "⚡ Battery Voltage",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-solar"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#808080",
+                "value": 0
+              },
+              {
+                "color": "#73BF69",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "mvolt"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 11
+      },
+      "id": 53,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "noValue": "Select device",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
@@ -318,27 +713,94 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "influxdb-solar-history"
+            "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_summary\")\n  |> filter(fn: (r) => r._field == \"avg_morning_soc_pct\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"pv_voltage_mv\" or r._field == \"pv_target_voltage_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> last()\n  |> map(fn: (r) => ({r with _field:\n      if r._field == \"pv_voltage_mv\" then \"PV Voltage\"\n      else \"MPPT Target\"\n  }))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
-      "title": "🌄 Avg Morning SOC",
+      "title": "☀️ PV Voltage",
       "type": "stat"
     },
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "influxdb-solar-history"
+        "uid": "influxdb-solar"
       },
-      "description": "Cumulative Ah delivered from PV to battery",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "decimals": 2,
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#808080",
+                "value": 0
+              },
+              {
+                "color": "#73BF69",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "watt"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 11
+      },
+      "id": 54,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "noValue": "Select device",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-solar"
+          },
+          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"charge_power_w\" or r._field == \"load_power_w\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> last()\n  |> map(fn: (r) => ({r with _field:\n      if r._field == \"charge_power_w\" then \"Charge W\"\n      else \"Load W\"\n  }))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "⚡ Charge Power",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-solar"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -349,7 +811,7 @@
               }
             ]
           },
-          "unit": "mamph"
+          "unit": "watt"
         },
         "overrides": []
       },
@@ -357,14 +819,14 @@
         "h": 4,
         "w": 4,
         "x": 16,
-        "y": 1
+        "y": 11
       },
-      "id": 14,
+      "id": 55,
       "options": {
         "colorMode": "background",
-        "graphMode": "none",
+        "graphMode": "area",
         "justifyMode": "center",
-        "noValue": "-",
+        "noValue": "Select device",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
@@ -383,38 +845,45 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "influxdb-solar-history"
+            "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_summary\")\n  |> filter(fn: (r) => r._field == \"total_ah_charge_mah\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"load_power_w\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
-      "title": "🔋 Total Charge",
+      "title": "💡 Load Power",
       "type": "stat"
     },
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "influxdb-solar-history"
+        "uid": "influxdb-solar"
       },
-      "description": "Cumulative Ah consumed by load",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "decimals": 2,
+          "decimals": 0,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "text",
+                "color": "#73BF69",
                 "value": 0
+              },
+              {
+                "color": "#FF9830",
+                "value": 50
+              },
+              {
+                "color": "#F2495C",
+                "value": 60
               }
             ]
           },
-          "unit": "mamph"
+          "unit": "celsius"
         },
         "overrides": []
       },
@@ -422,14 +891,14 @@
         "h": 4,
         "w": 4,
         "x": 20,
-        "y": 1
+        "y": 11
       },
-      "id": 15,
+      "id": 56,
       "options": {
         "colorMode": "background",
-        "graphMode": "none",
+        "graphMode": "area",
         "justifyMode": "center",
-        "noValue": "-",
+        "noValue": "Select device",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
@@ -448,13 +917,13 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "influxdb-solar-history"
+            "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_summary\")\n  |> filter(fn: (r) => r._field == \"total_ah_load_mah\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"external_temp_c\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
-      "title": "💡 Total Load",
+      "title": "🌡️ Ext Temp",
       "type": "stat"
     },
     {
@@ -463,359 +932,23 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 15
       },
-      "id": 20,
+      "id": 2,
       "panels": [],
-      "title": "📅 Daily Log - last 30 days",
+      "title": "📈 Live Telemetry - select single device",
       "type": "row"
     },
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "influxdb-solar-history"
+        "uid": "influxdb-solar"
       },
-      "description": "One row per recorded day - most recent first",
+      "description": "Battery terminal voltage. LiFePO4 nominal: 12.8V, float 13.8V, LVD 11.0V",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
-          },
-          "custom": {
-            "align": "center",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "filterable": true,
-            "footer": {
-              "reducers": []
-            },
-            "inspect": false,
-            "minWidth": 50
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "text",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Day"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "none"
-              },
-              {
-                "id": "decimals",
-                "value": 0
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "SOC %"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "percent"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "#F2495C",
-                      "value": 0
-                    },
-                    {
-                      "color": "#FF9830",
-                      "value": 20
-                    },
-                    {
-                      "color": "#FADE2A",
-                      "value": 40
-                    },
-                    {
-                      "color": "#73BF69",
-                      "value": 60
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "mode": "basic",
-                  "type": "color-background"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Ah In"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "mamph"
-              },
-              {
-                "id": "decimals"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Ah Out"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "mamph"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "V Bat Max"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "mvolt"
-              },
-              {
-                "id": "decimals",
-                "value": 2
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "text",
-                      "value": 0
-                    },
-                    {
-                      "color": "#F2495C",
-                      "value": 14.8
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "mode": "basic",
-                  "type": "color-text"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "V Bat Min"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "mvolt"
-              },
-              {
-                "id": "decimals",
-                "value": 2
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "#F2495C",
-                      "value": 0
-                    },
-                    {
-                      "color": "#FF9830",
-                      "value": 11.8
-                    },
-                    {
-                      "color": "#73BF69",
-                      "value": 12.4
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "mode": "basic",
-                  "type": "color-background"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "V PV Max"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "mvolt"
-              },
-              {
-                "id": "decimals",
-                "value": 2
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Load A Max"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "mamp"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "T Max °C"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "celsius"
-              },
-              {
-                "id": "decimals",
-                "value": 0
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "T Min °C"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "celsius"
-              },
-              {
-                "id": "decimals",
-                "value": 0
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Night min"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "m"
-              },
-              {
-                "id": "decimals",
-                "value": 2
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 6
-      },
-      "id": 21,
-      "options": {
-        "cellHeight": "sm",
-        "showHeader": true
-      },
-      "pluginVersion": "12.4.1",
-      "targets": [
-        {
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_daily\")\n  |> filter(fn: (r) =>\n      r._field == \"day_num\" or r._field == \"soc_pct\" or\n      r._field == \"ah_charge_mah\" or r._field == \"ah_load_mah\" or\n      r._field == \"vbat_max_mv\" or r._field == \"vbat_min_mv\" or\n      r._field == \"vpv_max_mv\" or r._field == \"il_max_ma\" or\n      r._field == \"ext_temp_max_c\" or r._field == \"ext_temp_min_c\" or\n      r._field == \"nightlength_min\" or r._field == \"load_disconnect\" or\n      r._field == \"full_charge\" or r._field == \"pv_over_current\" or\n      r._field == \"load_over_current\" or r._field == \"battery_over_voltage\" or r._field == \"low_soc\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"day_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> pivot(rowKey: [\"day_index\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"day_num\"], desc: false)\n  |> rename(columns: {\n      day_num: \"Day\", soc_pct: \"SOC %\",\n      ah_charge_mah: \"Ah In\", ah_load_mah: \"Ah Out\",\n      vbat_max_mv: \"V Bat Max\", vbat_min_mv: \"V Bat Min\",\n      vpv_max_mv: \"V PV Max\", il_max_ma: \"Load A Max\",\n      ext_temp_max_c: \"T Max °C\", ext_temp_min_c: \"T Min °C\",\n      nightlength_min: \"Night min\"\n  })\n  |> keep(columns: [\"Day\",\"SOC %\",\"Ah In\",\"Ah Out\",\"V Bat Max\",\"V Bat Min\",\"V PV Max\",\"Load A Max\",\"T Max °C\",\"T Min °C\",\"Night min\"])",
-          "refId": "A"
-        }
-      ],
-      "title": "📋 Daily Log Table",
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {},
-            "indexByName": {
-              "Ah In": 2,
-              "Ah Out": 3,
-              "Day": 0,
-              "Faults": 11,
-              "Load A Max": 7,
-              "Night min": 10,
-              "SOC %": 1,
-              "T Max °C": 8,
-              "T Min °C": 9,
-              "V Bat Max": 4,
-              "V Bat Min": 5,
-              "V PV Max": 6
-            },
-            "renameByName": {}
-          }
-        }
-      ],
-      "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb-solar-history"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
           },
           "custom": {
             "axisBorderShow": false,
@@ -826,7 +959,7 @@
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 12,
+            "fillOpacity": 14,
             "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
@@ -836,19 +969,19 @@
             "insertNulls": false,
             "lineInterpolation": "smooth",
             "lineWidth": 2,
-            "pointSize": 5,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "auto",
+            "showPoints": "never",
             "showValues": false,
-            "spanNulls": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
             },
             "thresholdsStyle": {
-              "mode": "off"
+              "mode": "area"
             }
           },
           "mappings": [],
@@ -856,8 +989,20 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#F2495C",
                 "value": 0
+              },
+              {
+                "color": "#FF9830",
+                "value": 11800
+              },
+              {
+                "color": "#FADE2A",
+                "value": 12400
+              },
+              {
+                "color": "#73BF69",
+                "value": 13000
               }
             ]
           },
@@ -867,38 +1012,15 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "V Bat Min"
+              "options": "Battery V"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "#F2495C",
-                  "mode": "fixed"
+                  "fixedColor": "#F5A623",
+                  "mode": "thresholds"
                 }
-              },
-              {
-                "id": "displayName",
-                "value": "V Bat Min"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "V Bat Max"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#73BF69",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "displayName",
-                "value": "V Bat Max"
               }
             ]
           }
@@ -910,10 +1032,11 @@
         "x": 0,
         "y": 16
       },
-      "id": 22,
+      "id": 9,
       "options": {
         "legend": {
           "calcs": [
+            "last",
             "min",
             "max"
           ],
@@ -932,29 +1055,21 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "influxdb-solar-history"
+            "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_daily\")\n  |> filter(fn: (r) => r._field == \"vbat_min_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"day_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (30 - int(v: r.day_index)) * 86400000000000)), \"V Bat Min\": r._value}))\n  |> keep(columns: [\"_time\", \"V Bat Min\"])",
+          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"battery_voltage_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: \"Battery V\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-solar-history"
-          },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_daily\")\n  |> filter(fn: (r) => r._field == \"vbat_max_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"day_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (30 - int(v: r.day_index)) * 86400000000000)), \"V Bat Max\": r._value}))\n  |> keep(columns: [\"_time\", \"V Bat Max\"])",
-          "refId": "B"
         }
       ],
-      "title": "🔋 Battery Voltage Min / Max",
+      "title": "🔋 Battery Voltage",
       "type": "timeseries"
     },
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "influxdb-solar-history"
+        "uid": "influxdb-solar"
       },
-      "description": "State of charge recorded at end-of-night (morning SOC)",
+      "description": "State of charge - 0-100%. Values below 20% indicate risk of LVD.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -969,7 +1084,7 @@
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 12,
+            "fillOpacity": 14,
             "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
@@ -979,13 +1094,291 @@
             "insertNulls": false,
             "lineInterpolation": "smooth",
             "lineWidth": 2,
-            "pointSize": 5,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "auto",
+            "showPoints": "never",
             "showValues": false,
-            "spanNulls": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": 0
+              },
+              {
+                "color": "#FF9830",
+                "value": 20
+              },
+              {
+                "color": "#FADE2A",
+                "value": 40
+              },
+              {
+                "color": "#73BF69",
+                "value": 60
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SOC %"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#73BF69",
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 25
+              },
+              {
+                "id": "custom.thresholdsStyle",
+                "value": {
+                  "mode": "area"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 16
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last",
+            "min"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-solar"
+          },
+          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"soc_pct\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: \"SOC %\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "🔋 Battery SOC",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-solar"
+      },
+      "description": "PV panel voltage (orange) and the MPPT tracking target (dashed). Convergence = good MPPT.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 14,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "mvolt"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "MPPT Target"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#FADE2A",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    8,
+                    4
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PV Voltage"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#FF9830",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 16
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-solar"
+          },
+          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"pv_voltage_mv\" or r._field == \"pv_target_voltage_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"pv_voltage_mv\" then \"PV Voltage\" else \"MPPT Target\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "☀️ PV Voltage & MPPT Target",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-solar"
+      },
+      "description": "Charge current (green, in) vs load current (red, out).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 14,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -1004,13 +1397,13 @@
               }
             ]
           },
-          "unit": "percent"
+          "unit": "mamph"
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "Morning SOC %"
+              "options": "Charge A"
             },
             "properties": [
               {
@@ -1019,14 +1412,21 @@
                   "fixedColor": "#73BF69",
                   "mode": "fixed"
                 }
-              },
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Load A"
+            },
+            "properties": [
               {
-                "id": "displayName",
-                "value": "Morning SOC"
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 20
+                "id": "color",
+                "value": {
+                  "fixedColor": "#F2495C",
+                  "mode": "fixed"
+                }
               }
             ]
           }
@@ -1034,16 +1434,17 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 16
+        "w": 12,
+        "x": 0,
+        "y": 24
       },
-      "id": 23,
+      "id": 12,
       "options": {
         "legend": {
           "calcs": [
+            "last",
             "mean",
-            "min"
+            "max"
           ],
           "displayMode": "table",
           "placement": "bottom",
@@ -1060,20 +1461,21 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "influxdb-solar-history"
+            "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_daily\")\n  |> filter(fn: (r) => r._field == \"soc_pct\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"day_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (30 - int(v: r.day_index)) * 86400000000000)), \"Morning SOC %\": r._value}))\n  |> keep(columns: [\"_time\", \"Morning SOC %\"])",
+          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"charge_current_ma\" or r._field == \"load_current_ma\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"charge_current_ma\" then \"Charge A\" else \"Load A\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
-      "title": "🔋 Morning SOC %",
+      "title": "⚡ Charge & Load Current",
       "type": "timeseries"
     },
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "influxdb-solar-history"
+        "uid": "influxdb-solar"
       },
+      "description": "External ambient (orange) and internal controller temperature (purple dashed).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1088,7 +1490,7 @@
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 12,
+            "fillOpacity": 14,
             "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
@@ -1098,13 +1500,13 @@
             "insertNulls": false,
             "lineInterpolation": "smooth",
             "lineWidth": 2,
-            "pointSize": 5,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "auto",
+            "showPoints": "never",
             "showValues": false,
-            "spanNulls": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -1114,7 +1516,6 @@
             }
           },
           "mappings": [],
-          "max": 60,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1130,26 +1531,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Temp Min °C"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#5794F2",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "displayName",
-                "value": "T Min"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Temp Max °C"
+              "options": "External °C"
             },
             "properties": [
               {
@@ -1158,393 +1540,13 @@
                   "fixedColor": "#FF9830",
                   "mode": "fixed"
                 }
-              },
-              {
-                "id": "displayName",
-                "value": "T Max"
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 16
-      },
-      "id": 24,
-      "options": {
-        "legend": {
-          "calcs": [
-            "min",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.4.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-solar-history"
-          },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_daily\")\n  |> filter(fn: (r) => r._field == \"ext_temp_min_c\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"day_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (30 - int(v: r.day_index)) * 86400000000000)), \"Temp Min °C\": r._value}))\n  |> keep(columns: [\"_time\", \"Temp Min °C\"])",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-solar-history"
-          },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_daily\")\n  |> filter(fn: (r) => r._field == \"ext_temp_max_c\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"day_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (30 - int(v: r.day_index)) * 86400000000000)), \"Temp Max °C\": r._value}))\n  |> keep(columns: [\"_time\", \"Temp Max °C\"])",
-          "refId": "B"
-        }
-      ],
-      "title": "🌡️ Ext Temperature Min / Max",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb-solar-history"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 12,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "mvolt"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "V PV Min"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#FADE2A",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "displayName",
-                "value": "V PV Min"
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "V PV Max"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#FF9830",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "displayName",
-                "value": "V PV Max"
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 0,
-        "y": 24
-      },
-      "id": 25,
-      "options": {
-        "legend": {
-          "calcs": [
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.4.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-solar-history"
-          },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_daily\")\n  |> filter(fn: (r) => r._field == \"vpv_min_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"day_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (30 - int(v: r.day_index)) * 86400000000000)), \"V PV Min\": r._value}))\n  |> keep(columns: [\"_time\", \"V PV Min\"])",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-solar-history"
-          },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_daily\")\n  |> filter(fn: (r) => r._field == \"vpv_max_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"day_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (30 - int(v: r.day_index)) * 86400000000000)), \"V PV Max\": r._value}))\n  |> keep(columns: [\"_time\", \"V PV Max\"])",
-          "refId": "B"
-        }
-      ],
-      "title": "☀️ PV Voltage Min / Max",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb-solar-history"
-      },
-      "description": "Daily energy balance, charge should meet or exceed load.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 12,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "mamph"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Charge Ah"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#73BF69",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "displayName",
-                "value": "Ah Charge"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Load Ah"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#F2495C",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "displayName",
-                "value": "Ah Load"
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 24
-      },
-      "id": 26,
-      "options": {
-        "legend": {
-          "calcs": [
-            "mean",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.4.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-solar-history"
-          },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_daily\")\n  |> filter(fn: (r) => r._field == \"ah_charge_mah\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"day_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (30 - int(v: r.day_index)) * 86400000000000)), \"Charge Ah\": r._value}))\n  |> keep(columns: [\"_time\", \"Charge Ah\"])",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-solar-history"
-          },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_daily\")\n  |> filter(fn: (r) => r._field == \"ah_load_mah\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"day_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (30 - int(v: r.day_index)) * 86400000000000)), \"Load Ah\": r._value}))\n  |> keep(columns: [\"_time\", \"Load Ah\"])",
-          "refId": "B"
-        }
-      ],
-      "title": "⚡ Daily Energy - Charge vs Load",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb-solar-history"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "fillOpacity": 80,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineWidth": 1,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "m"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Night Length min"
+              "options": "Internal °C"
             },
             "properties": [
               {
@@ -1555,635 +1557,14 @@
                 }
               },
               {
-                "id": "displayName",
-                "value": "Night Length"
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 24
-      },
-      "id": 27,
-      "options": {
-        "barRadius": 0.1,
-        "barWidth": 0.7,
-        "fullHighlight": false,
-        "groupWidth": 0.7,
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "orientation": "auto",
-        "showValue": "auto",
-        "stacking": "none",
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        },
-        "xTickLabelRotation": -45,
-        "xTickLabelSpacing": 0
-      },
-      "pluginVersion": "12.4.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-solar-history"
-          },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -35d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_daily\")\n  |> filter(fn: (r) => r._field == \"nightlength_min\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"day_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (30 - int(v: r.day_index)) * 86400000000000)), \"Night Length min\": r._value}))\n  |> keep(columns: [\"_time\", \"Night Length min\"])",
-          "refId": "A"
-        }
-      ],
-      "title": "🌙 Night Length",
-      "type": "barchart"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 32
-      },
-      "id": 30,
-      "panels": [],
-      "title": "📆 Monthly Log - all recorded months",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb-solar-history"
-      },
-      "description": "One row per month - most recent first",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "center",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "filterable": true,
-            "footer": {
-              "reducers": []
-            },
-            "inspect": false,
-            "minWidth": 50
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "text",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Month"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "none"
-              },
-              {
-                "id": "decimals",
-                "value": 0
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "SOC %"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "percent"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              },
-              {
-                "id": "thresholds",
+                "id": "custom.lineStyle",
                 "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "#F2495C",
-                      "value": 0
-                    },
-                    {
-                      "color": "#FF9830",
-                      "value": 20
-                    },
-                    {
-                      "color": "#FADE2A",
-                      "value": 40
-                    },
-                    {
-                      "color": "#73BF69",
-                      "value": 60
-                    }
-                  ]
+                  "dash": [
+                    6,
+                    3
+                  ],
+                  "fill": "dash"
                 }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "mode": "basic",
-                  "type": "color-background"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Ah In"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "mamph"
-              },
-              {
-                "id": "decimals",
-                "value": 3
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Ah Out"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "mamph"
-              },
-              {
-                "id": "decimals",
-                "value": 3
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "V Bat Max"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "mvolt"
-              },
-              {
-                "id": "decimals",
-                "value": 2
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "V Bat Min"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "mvolt"
-              },
-              {
-                "id": "decimals"
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "#F2495C",
-                      "value": 0
-                    },
-                    {
-                      "color": "#FF9830",
-                      "value": 11.8
-                    },
-                    {
-                      "color": "#73BF69",
-                      "value": 12.4
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "mode": "basic",
-                  "type": "color-background"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "V PV Max"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "mvolt"
-              },
-              {
-                "id": "decimals",
-                "value": 2
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "PV A Max"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "mamp"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Load A Max"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "mamp"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "T Max °C"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "celsius"
-              },
-              {
-                "id": "decimals",
-                "value": 0
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "T Min °C"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "celsius"
-              },
-              {
-                "id": "decimals",
-                "value": 0
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Night min"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "m"
-              },
-              {
-                "id": "decimals",
-                "value": 2
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 33
-      },
-      "id": 31,
-      "options": {
-        "cellHeight": "sm",
-        "showHeader": true
-      },
-      "pluginVersion": "12.4.1",
-      "targets": [
-        {
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -400d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_monthly\")\n  |> filter(fn: (r) =>\n      r._field == \"month_num\" or r._field == \"soc_pct\" or\n      r._field == \"ah_charge_mah\" or r._field == \"ah_load_mah\" or\n      r._field == \"vbat_max_mv\" or r._field == \"vbat_min_mv\" or\n      r._field == \"vpv_max_mv\" or r._field == \"ipv_max_ma\" or\n      r._field == \"il_max_ma\" or r._field == \"ext_temp_max_c\" or\n      r._field == \"ext_temp_min_c\" or r._field == \"nightlength_min\" or r._field == \"load_disconnect\" or\n      r._field == \"full_charge\" or r._field == \"pv_over_current\" or\n      r._field == \"load_over_current\" or r._field == \"battery_over_voltage\" or r._field == \"low_soc\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"month_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> pivot(rowKey: [\"month_index\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"month_num\"], desc: false)\n  |> rename(columns: {\n      month_num: \"Month\", soc_pct: \"SOC %\",\n      ah_charge_mah: \"Ah In\", ah_load_mah: \"Ah Out\",\n      vbat_max_mv: \"V Bat Max\", vbat_min_mv: \"V Bat Min\",\n      vpv_max_mv: \"V PV Max\", ipv_max_ma: \"PV A Max\",\n      il_max_ma: \"Load A Max\", ext_temp_max_c: \"T Max °C\",\n      ext_temp_min_c: \"T Min °C\", nightlength_min: \"Night min\"\n  })\n  |> keep(columns: [\"Month\",\"SOC %\",\"Ah In\",\"Ah Out\",\"V Bat Max\",\"V Bat Min\",\"V PV Max\",\"PV A Max\",\"Load A Max\",\"T Max °C\",\"T Min °C\",\"Night min\"])",
-          "refId": "A"
-        }
-      ],
-      "title": "📋 Monthly Log Table",
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {},
-            "indexByName": {
-              "Ah In": 2,
-              "Ah Out": 3,
-              "Faults": 12,
-              "Load A Max": 8,
-              "Month": 0,
-              "Night min": 11,
-              "PV A Max": 7,
-              "SOC %": 1,
-              "T Max °C": 9,
-              "T Min °C": 10,
-              "V Bat Max": 4,
-              "V Bat Min": 5,
-              "V PV Max": 6
-            },
-            "renameByName": {}
-          }
-        }
-      ],
-      "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb-solar-history"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 12,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "mamph"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Charge Ah"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#73BF69",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "displayName",
-                "value": "Monthly Ah In"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Load Ah"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#F2495C",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "displayName",
-                "value": "Monthly Ah Out"
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 43
-      },
-      "id": 32,
-      "options": {
-        "legend": {
-          "calcs": [
-            "mean",
-            "max",
-            "sum"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.4.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-solar-history"
-          },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -400d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_monthly\")\n  |> filter(fn: (r) => r._field == \"ah_charge_mah\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"month_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (12 - int(v: r.month_index)) * 2592000000000000)), \"Charge Ah\": r._value}))\n  |> keep(columns: [\"_time\", \"Charge Ah\"])",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-solar-history"
-          },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -400d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_monthly\")\n  |> filter(fn: (r) => r._field == \"ah_load_mah\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"month_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (12 - int(v: r.month_index)) * 2592000000000000)), \"Load Ah\": r._value}))\n  |> keep(columns: [\"_time\", \"Load Ah\"])",
-          "refId": "B"
-        }
-      ],
-      "title": "🔌 Monthly Energy - Charge vs Load",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb-solar-history"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 12,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "mvolt"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "V Bat Min"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#F2495C",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "displayName",
-                "value": "V Bat Min"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "V Bat Max"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#73BF69",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "displayName",
-                "value": "V Bat Max"
               }
             ]
           }
@@ -2193,12 +1574,13 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 43
+        "y": 24
       },
-      "id": 33,
+      "id": 13,
       "options": {
         "legend": {
           "calcs": [
+            "last",
             "min",
             "max"
           ],
@@ -2217,28 +1599,21 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "influxdb-solar-history"
+            "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -400d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_monthly\")\n  |> filter(fn: (r) => r._field == \"vbat_min_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"month_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (12 - int(v: r.month_index)) * 2592000000000000)), \"V Bat Min\": r._value}))\n  |> keep(columns: [\"_time\", \"V Bat Min\"])",
+          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"internal_temp_c\" or r._field == \"external_temp_c\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"internal_temp_c\" then \"Internal °C\" else \"External °C\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-solar-history"
-          },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -400d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_monthly\")\n  |> filter(fn: (r) => r._field == \"vbat_max_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"month_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (12 - int(v: r.month_index)) * 2592000000000000)), \"V Bat Max\": r._value}))\n  |> keep(columns: [\"_time\", \"V Bat Max\"])",
-          "refId": "B"
         }
       ],
-      "title": "🔋 Monthly Battery Voltage Range",
+      "title": "🌡️ Temperature",
       "type": "timeseries"
     },
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "influxdb-solar-history"
+        "uid": "influxdb-solar"
       },
+      "description": "Solar charge power (green) vs load consumption (red). Gap = net energy into battery.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2253,7 +1628,7 @@
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 12,
+            "fillOpacity": 20,
             "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
@@ -2263,13 +1638,13 @@
             "insertNulls": false,
             "lineInterpolation": "smooth",
             "lineWidth": 2,
-            "pointSize": 5,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "auto",
+            "showPoints": "never",
             "showValues": false,
-            "spanNulls": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -2288,13 +1663,13 @@
               }
             ]
           },
-          "unit": "percent"
+          "unit": "watt"
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "Morning SOC %"
+              "options": "Charge W"
             },
             "properties": [
               {
@@ -2303,14 +1678,21 @@
                   "fixedColor": "#73BF69",
                   "mode": "fixed"
                 }
-              },
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Load W"
+            },
+            "properties": [
               {
-                "id": "displayName",
-                "value": "SOC %"
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 20
+                "id": "color",
+                "value": {
+                  "fixedColor": "#F2495C",
+                  "mode": "fixed"
+                }
               }
             ]
           }
@@ -2318,150 +1700,16 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 8,
+        "w": 16,
         "x": 0,
-        "y": 51
+        "y": 32
       },
-      "id": 34,
+      "id": 15,
       "options": {
         "legend": {
           "calcs": [
+            "last",
             "mean",
-            "min"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.4.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-solar-history"
-          },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -400d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_monthly\")\n  |> filter(fn: (r) => r._field == \"soc_pct\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"month_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (12 - int(v: r.month_index)) * 2592000000000000)), \"Morning SOC %\": r._value}))\n  |> keep(columns: [\"_time\", \"Morning SOC %\"])",
-          "refId": "A"
-        }
-      ],
-      "title": "🔋 Monthly Morning SOC",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb-solar-history"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 12,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "max": 30000,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "mvolt"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "V PV Max"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#FF9830",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "displayName",
-                "value": "V PV Max"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "V PV Min"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#FADE2A",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "displayName",
-                "value": "V PV Min"
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 51
-      },
-      "id": 35,
-      "options": {
-        "legend": {
-          "calcs": [
             "max"
           ],
           "displayMode": "table",
@@ -2479,28 +1727,21 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "influxdb-solar-history"
+            "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -400d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_monthly\")\n  |> filter(fn: (r) => r._field == \"vpv_min_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"month_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (12 - int(v: r.month_index)) * 2592000000000000)), \"V PV Min\": r._value}))\n  |> keep(columns: [\"_time\", \"V PV Min\"])",
+          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"charge_power_w\" or r._field == \"load_power_w\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"charge_power_w\" then \"Charge W\" else \"Load W\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-solar-history"
-          },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -400d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_monthly\")\n  |> filter(fn: (r) => r._field == \"vpv_max_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"month_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (12 - int(v: r.month_index)) * 2592000000000000)), \"V PV Max\": r._value}))\n  |> keep(columns: [\"_time\", \"V PV Max\"])",
-          "refId": "B"
         }
       ],
-      "title": "☀️ Monthly PV Voltage Range",
+      "title": "⚡ Power Balance - Charge vs Load",
       "type": "timeseries"
     },
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "influxdb-solar-history"
+        "uid": "influxdb-solar"
       },
+      "description": "LED driver voltage and current output.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2512,16 +1753,29 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
-            "fillOpacity": 80,
-            "gradientMode": "none",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 14,
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
-            "lineWidth": 1,
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -2537,13 +1791,28 @@
               }
             ]
           },
-          "unit": "m"
+          "unit": "mvolt"
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "Night Length min"
+              "options": "LED V"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#FADE2A",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "LED A"
             },
             "properties": [
               {
@@ -2554,8 +1823,12 @@
                 }
               },
               {
-                "id": "displayName",
-                "value": "Night Length"
+                "id": "unit",
+                "value": "mamp"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
               }
             ]
           }
@@ -2565,74 +1838,221 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 51
+        "y": 32
       },
-      "id": 36,
+      "id": 14,
       "options": {
-        "barRadius": 0.1,
-        "barWidth": 0.7,
-        "fullHighlight": false,
-        "groupWidth": 0.7,
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
-        "orientation": "auto",
-        "showValue": "auto",
-        "stacking": "none",
         "tooltip": {
           "hideZeros": false,
           "mode": "multi",
           "sort": "none"
-        },
-        "xTickLabelRotation": -45,
-        "xTickLabelSpacing": 0
+        }
       },
       "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "influxdb-solar-history"
+            "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar_history\")\n  |> range(start: -400d)\n  |> filter(fn: (r) => r._measurement == \"datalogger_monthly\")\n  |> filter(fn: (r) => r._field == \"nightlength_min\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> group(columns: [\"serial\", \"month_index\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({_time: time(v: uint(v: now()) - uint(v: (12 - int(v: r.month_index)) * 2592000000000000)), \"Night Length min\": r._value}))\n  |> keep(columns: [\"_time\", \"Night Length min\"])",
+          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"led_voltage_mv\" or r._field == \"led_current_ma\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"led_voltage_mv\" then \"LED V\" else \"LED A\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
-      "title": "🌙 Monthly Night Length",
-      "type": "barchart"
+      "title": "💡 LED Output",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "id": 3,
+      "panels": [],
+      "title": "⚠️ Fault History",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-solar"
+      },
+      "description": "Boolean fault signals over time. Orange/red = active fault.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Time"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 160
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Serial"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "View Datalogger",
+                    "url": "/d/mppt-datalogger?var-serial_number=${__value.text}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Fault"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#F2495C",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      },
+      "id": 17,
+      "options": {
+        "cellHeight": "sm",
+        "noValue": "✅ No fault events in selected time range",
+        "showHeader": true
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-solar"
+          },
+          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"faults\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> difference(nonNegative: true)\n  |> filter(fn: (r) => r._value > 0)\n  |> map(fn: (r) => ({r with _field:\n      if r._field == \"battery_over_voltage\"   then \"Battery Over Voltage\"\n      else if r._field == \"pv_over_voltage\"         then \"PV Over Voltage\"\n      else if r._field == \"charge_over_current\"     then \"Charge Over Current\"\n      else if r._field == \"lvd_active\"              then \"Battery Low (LVD)\"\n      else if r._field == \"over_discharge_current\"  then \"Battery Over-Discharge\"\n      else if r._field == \"load_over_current\"       then \"Load Over Current\"\n      else if r._field == \"battery_over_temp\"       then \"Battery Over Temperature\"\n      else if r._field == \"battery_under_temp\"      then \"Battery Under Temperature\"\n      else r._field\n  }))\n  |> group()\n  |> rename(columns: {serial_number: \"Serial\", _field: \"Fault\", _time: \"Time\"})\n  |> keep(columns: [\"Time\", \"Serial\", \"Fault\"])\n  |> sort(columns: [\"Time\"], desc: true)",
+          "refId": "A"
+        }
+      ],
+      "title": "⚠️ Fault Event Log",
+      "type": "table"
     }
   ],
   "preload": false,
-  "refresh": "5m",
+  "refresh": "5s",
   "schemaVersion": 42,
   "tags": [
     "solar",
     "mppt",
-    "datalogger",
     "iot"
   ],
   "templating": {
     "list": [
       {
         "current": {
-          "text": "0503-18",
-          "value": "0503-18"
+          "text": [
+            "0503-18"
+          ],
+          "value": [
+            "0503-18"
+          ]
         },
         "datasource": {
           "type": "influxdb",
-          "uid": "influxdb-solar-history"
+          "uid": "influxdb-solar"
         },
         "definition": "import \"influxdata/influxdb/schema\"\nschema.tagValues(bucket: \"solar\", tag: \"serial_number\")",
         "includeAll": true,
         "label": "Device",
-        "name": "serial",
+        "multi": true,
+        "name": "serial_number",
         "options": [],
-        "query": "import \"influxdata/influxdb/schema\"\nunion(\n  tables: [\n    schema.tagValues(bucket: \"solar\",         tag: \"serial\"),\n    schema.tagValues(bucket: \"solar_history\", tag: \"serial\"),\n  ]\n) |> distinct(column: \"_value\")",
+        "query": "import \"influxdata/influxdb/schema\"\nschema.tagValues(bucket: \"solar\", tag: \"serial_number\")",
         "refresh": 2,
         "regex": "",
+        "regexApplyTo": "value",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb-solar"
+        },
+        "definition": "import \"influxdata/influxdb/schema\"\nschema.tagValues(bucket: \"solar\", tag: \"zone\")",
+        "includeAll": true,
+        "label": "Zone",
+        "name": "zone",
+        "options": [],
+        "query": "import \"influxdata/influxdb/schema\"\nschema.tagValues(bucket: \"solar\", tag: \"zone\")",
+        "refresh": 2,
         "regexApplyTo": "value",
         "sort": 1,
         "type": "query"
@@ -2640,13 +2060,13 @@
     ]
   },
   "time": {
-    "from": "now-3h",
-    "to": "now"
+    "from": "2026-04-26T23:33:39.086Z",
+    "to": "2026-04-26T23:34:30.445Z"
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "📊 MPPT Solar - Datalogger",
-  "uid": "mppt-datalogger",
-  "version": 2,
+  "title": "☀️ MPPT Solar - Live Telemetry",
+  "uid": "mppt-solar",
+  "version": 4,
   "weekStart": ""
 }
