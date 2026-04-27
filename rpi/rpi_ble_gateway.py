@@ -37,7 +37,6 @@ except ImportError:
         f"Expected: {os.path.join(_REPO_ROOT, 'proto', 'mppt_pb2.py')}"
     )
 
-# ── BLE constants ──────────────────────────────────────────────────────────────
 SVC_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
 TX_UUID  = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"  # ESP32 -> RPi (notify)
 RX_UUID  = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"  # RPi -> ESP32 (write)
@@ -60,9 +59,6 @@ BLE_TARGET_MTU   = 247       # 247 is widely supported (244 byte payload)
 CMD_WRITE_DELAY  = 0.02      # seconds between BLE write chunks
 
 log = logging.getLogger("mppt-ble")
-
-
-# ── BLE framing ────────────────────────────────────────────────────────────────
 
 class FrameReassembler:
     """
@@ -164,8 +160,6 @@ def build_framed_packet(msg_type: int, payload: bytes,
     return chunks
 
 
-# ── Gateway ────────────────────────────────────────────────────────────────────
-
 class MpptBleGateway:
 
     def __init__(self, broker: str, port: int, zone: str,
@@ -184,7 +178,6 @@ class MpptBleGateway:
         self._loop           = asyncio.get_event_loop()
         self._mqtt           = self._setup_mqtt()
 
-    # ── MQTT setup ────────────────────────────────────────────────────────────
 
     def _setup_mqtt(self) -> mqtt.Client:
         client = mqtt.Client(
@@ -233,7 +226,6 @@ class MpptBleGateway:
         topic = f"mppt/{self.zone}/{self.gateway_id}/{self._serial}/online"
         self._mqtt.publish(topic, "1" if online else "0", qos=1, retain=True)
 
-    # ── BLE dispatch ──────────────────────────────────────────────────────────
 
     def _dispatch(self, msg_type: int, payload: bytes):
         try:
@@ -262,7 +254,12 @@ class MpptBleGateway:
                 log.info("Datalog (%d B)", len(payload))
                 m = mppt_pb2.DataloggerPayload()
                 m.ParseFromString(payload)
-                self._split_and_publish_datalog(m)
+                if len(m.daily_logs) > 0:
+                    self._publish("datalog/daily", payload, retain=True, qos=1)
+                elif len(m.monthly_logs) > 0:
+                    self._publish("datalog/monthly", payload, retain=True, qos=1)
+                else:
+                    self._publish("datalog/summary", payload, retain=True, qos=1)
 
             elif msg_type == MSG_ACK:
                 log.info("ACK (%d B)", len(payload))
@@ -276,13 +273,14 @@ class MpptBleGateway:
 
     def _split_and_publish_datalog(self, m: "mppt_pb2.DataloggerPayload"):
         """Split DataloggerPayload into three retained sub-topics."""
-        summary = mppt_pb2.DataloggerPayload()
-        summary.CopyFrom(m)
-        summary.ClearField("daily_logs")
-        summary.ClearField("monthly_logs")
-        self._publish("datalog/summary", summary.SerializeToString(),
-                      retain=True, qos=1)
 
+        if m.recorded_days > 0:
+            summary = mppt_pb2.DataloggerPayload()
+            summary.CopyFrom(m)
+            summary.ClearField("daily_logs")
+            summary.ClearField("monthly_logs")
+            self._publish("datalog/summary", summary.SerializeToString(),
+                      retain=True, qos=1)
         if m.daily_logs:
             daily = mppt_pb2.DataloggerPayload()
             daily.timestamp = m.timestamp
@@ -302,8 +300,6 @@ class MpptBleGateway:
         if result:
             msg_type, payload = result
             self._dispatch(msg_type, payload)
-
-    # ── BLE connection ────────────────────────────────────────────────────────
 
     def _on_ble_disconnected(self, client: BleakClient):
         log.warning("BLE disconnected from %s", client.address)
@@ -333,13 +329,11 @@ class MpptBleGateway:
             disconnected_callback=self._on_ble_disconnected
         ) as client:
             self._client = client
+            self._consecutive_failures = 0
 
-            # ── Negotiate higher MTU ──────────────────────────────────────────
-            # Default is 23 bytes / 20 usable which is far too small.
             try:
                 # 1. On Linux/BlueZ, accessing 'services' triggers discovery and MTU sync
                 _ = client.services 
-                
                 # Give BlueZ a moment to propagate the MTU property to DBus
                 await asyncio.sleep(1.0)
 
@@ -348,7 +342,6 @@ class MpptBleGateway:
                 # which solves the UserWarning for subsequent accesses.
                 if hasattr(client, "_acquire_mtu"):
                     await client._acquire_mtu()
-                
                 log.info("Connected to %s, MTU=%d (Payload=%d)", 
                          address, client.mtu_size, client.mtu_size - 3)
             except Exception as e:
@@ -388,8 +381,6 @@ class MpptBleGateway:
         self._mqtt.loop_stop()
         self._mqtt.disconnect()
 
-
-# ── Entry point ────────────────────────────────────────────────────────────────
 
 async def main_loop():
     parser = argparse.ArgumentParser(description="MPPT BLE-to-MQTT gateway")
@@ -439,12 +430,16 @@ async def main_loop():
                 await gw.run()
             except Exception as e:
                 log.error("Gateway error: %s - retrying in 5s", e)
-                # Clear cached address on repeated failures so we re-scan
-                # (device may have changed address after power cycle)
+                gw._consecutive_failures = getattr(gw, '_consecutive_failures', 0) + 1
+                if gw._consecutive_failures >= 3:
+                    log.warning("3 consecutive failures, clearing cached address to force re-scan")
+                    gw._known_address = None
+                    gw._consecutive_failures = 0
+                await asyncio.sleep(5)
+                # Reset failure counter on success (add inside run() on successful connect):
                 await asyncio.sleep(5)
     finally:
         gw.cleanup()
-
 
 if __name__ == "__main__":
     try:
