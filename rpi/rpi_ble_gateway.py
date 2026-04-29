@@ -11,6 +11,7 @@ DeviceInfo no longer carries serial so always pass --serial.
 Usage:
     python3 rpi_ble_gateway.py --serial 0503-18 --broker 192.168.1.10 --zone site1
 """
+
 import argparse
 import asyncio
 import logging
@@ -39,30 +40,31 @@ except ImportError:
 
 # ── BLE constants ──────────────────────────────────────────────────────────────
 SVC_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
-TX_UUID  = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"  # ESP32 -> RPi (notify)
-RX_UUID  = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"  # RPi -> ESP32 (write)
+TX_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"  # ESP32 -> RPi (notify)
+RX_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"  # RPi -> ESP32 (write)
 
-MSG_TELEMETRY    = 0x01
+MSG_TELEMETRY = 0x01
 MSG_FAULT_STATUS = 0x02
-MSG_DEVICE_INFO  = 0x03
-MSG_SETTINGS     = 0x04
-MSG_DATALOG      = 0x05
-MSG_ACK          = 0x11
-MSG_CMD          = 0x10
+MSG_DEVICE_INFO = 0x03
+MSG_SETTINGS = 0x04
+MSG_DATALOG = 0x05
+MSG_ACK = 0x11
+MSG_CMD = 0x10
 
 CHUNK_FIRST = 0x00
-CHUNK_CONT  = 0x01
-CHUNK_LAST  = 0x80
+CHUNK_CONT = 0x01
+CHUNK_LAST = 0x80
 
-BLE_DEVICE_NAME  = "MPPT-Gateway"
-BLE_SCAN_TIMEOUT = 15.0      # seconds
-BLE_TARGET_MTU   = 247       # 247 is widely supported (244 byte payload)
-CMD_WRITE_DELAY  = 0.02      # seconds between BLE write chunks
+BLE_DEVICE_NAME = "MPPT-Gateway"
+BLE_SCAN_TIMEOUT = 15.0  # seconds
+BLE_TARGET_MTU = 247  # 247 is widely supported (244 byte payload)
+CMD_WRITE_DELAY = 0.02  # seconds between BLE write chunks
 
 log = logging.getLogger("mppt-ble")
 
 
 # ── BLE framing ────────────────────────────────────────────────────────────────
+
 
 class FrameReassembler:
     """
@@ -89,19 +91,21 @@ class FrameReassembler:
             return None
 
         now = time.monotonic()
-        tag   = data[0]
+        tag = data[0]
         chunk = data[1:]
 
         # Watchdog: drop partial frame if peer went silent too long
         if self._busy and (now - self._last_chunk_time > self._timeout):
-            log.warning("Reassembler timeout, dropping %d buffered bytes", len(self._buf))
+            log.warning(
+                "Reassembler timeout, dropping %d buffered bytes", len(self._buf)
+            )
             self._buf.clear()
             self._busy = False
 
         self._last_chunk_time = now
 
         if tag == CHUNK_FIRST:
-            self._buf  = bytearray(chunk)
+            self._buf = bytearray(chunk)
             self._busy = True
         elif tag == CHUNK_CONT:
             if not self._busy:
@@ -129,28 +133,29 @@ class FrameReassembler:
             return None  # truncated frame, wait
 
         msg_type = self._buf[0]
-        payload  = bytes(self._buf[3: 3 + payload_len])
+        payload = bytes(self._buf[3 : 3 + payload_len])
         self._buf.clear()
         return (msg_type, payload)
 
 
-def build_framed_packet(msg_type: int, payload: bytes,
-                        mtu: int = BLE_TARGET_MTU) -> list[bytes]:
+def build_framed_packet(
+    msg_type: int, payload: bytes, mtu: int = BLE_TARGET_MTU
+) -> list[bytes]:
     """Split a proto payload into BLE-sized chunks with framing tags."""
-    frame          = bytes([msg_type]) + struct.pack("<H", len(payload)) + payload
+    frame = bytes([msg_type]) + struct.pack("<H", len(payload)) + payload
     # GATT overhead is 3 bytes (Opcode + Handle). We also use 1 byte for our tag.
     # Total PDU size must be <= MTU.
     chunk_data_max = mtu - 4
-    chunks         = []
-    offset         = 0
+    chunks = []
+    offset = 0
 
     while offset < len(frame):
-        take    = min(len(frame) - offset, chunk_data_max)
+        take = min(len(frame) - offset, chunk_data_max)
         is_last = offset + take >= len(frame)
         is_first = offset == 0
 
         if is_first and is_last:
-            tag = CHUNK_FIRST           # single-chunk message
+            tag = CHUNK_FIRST  # single-chunk message
         elif is_first:
             tag = CHUNK_FIRST
         elif is_last:
@@ -158,7 +163,7 @@ def build_framed_packet(msg_type: int, payload: bytes,
         else:
             tag = CHUNK_CONT
 
-        chunks.append(bytes([tag]) + frame[offset: offset + take])
+        chunks.append(bytes([tag]) + frame[offset : offset + take])
         offset += take
 
     return chunks
@@ -166,34 +171,40 @@ def build_framed_packet(msg_type: int, payload: bytes,
 
 # ── Gateway ────────────────────────────────────────────────────────────────────
 
-class MpptBleGateway:
 
-    def __init__(self, broker: str, port: int, zone: str,
-                 gateway_id: str, serial: Optional[str]):
-        self.broker     = broker
-        self.port       = port
-        self.zone       = zone
+class MpptBleGateway:
+    def __init__(
+        self, broker: str, port: int, zone: str, gateway_id: str, serial: Optional[str]
+    ):
+        self.broker = broker
+        self.port = port
+        self.zone = zone
         self.gateway_id = gateway_id
 
-        self._serial         = serial  # operator-configured; may be None
+        self._serial = serial  # operator-configured; may be None
         self._known_address: Optional[str] = None
         self._client: Optional[BleakClient] = None
-        self._reassembler    = FrameReassembler(timeout=10.0)
+        self._reassembler = FrameReassembler(timeout=10.0)
         self._cmd_queue: asyncio.Queue = asyncio.Queue()
         self._mqtt_connected = False
-        self._loop           = asyncio.get_event_loop()
-        self._mqtt           = self._setup_mqtt()
+        self._loop = asyncio.get_event_loop()
+        self._mqtt = self._setup_mqtt()
 
     # ── MQTT setup ────────────────────────────────────────────────────────────
 
     def _setup_mqtt(self) -> mqtt.Client:
         client = mqtt.Client(
-            mqtt.CallbackAPIVersion.VERSION2,
-            client_id=f"ble_gw_{self.gateway_id}"
+            mqtt.CallbackAPIVersion.VERSION2, client_id=f"ble_gw_{self.gateway_id}"
         )
-        client.on_connect    = lambda *a: self._loop.call_soon_threadsafe(self._on_mqtt_connect, *a)
-        client.on_message    = lambda *a: self._loop.call_soon_threadsafe(self._on_mqtt_message, *a)
-        client.on_disconnect = lambda *a: self._loop.call_soon_threadsafe(self._on_mqtt_disconnect, *a)
+        client.on_connect = lambda *a: self._loop.call_soon_threadsafe(
+            self._on_mqtt_connect, *a
+        )
+        client.on_message = lambda *a: self._loop.call_soon_threadsafe(
+            self._on_mqtt_message, *a
+        )
+        client.on_disconnect = lambda *a: self._loop.call_soon_threadsafe(
+            self._on_mqtt_disconnect, *a
+        )
         client.reconnect_delay_set(min_delay=1, max_delay=30)
         client.connect_async(self.broker, self.port, keepalive=60)
         client.loop_start()
@@ -218,8 +229,9 @@ class MpptBleGateway:
                 log.info("Queuing CMD for %s (%d B)", parts[3], len(msg.payload))
                 self._cmd_queue.put_nowait(msg.payload)
 
-    def _publish(self, subtopic: str, payload: bytes,
-                 retain: bool = False, qos: int = 0):
+    def _publish(
+        self, subtopic: str, payload: bytes, retain: bool = False, qos: int = 0
+    ):
         if not self._serial:
             log.debug("Serial unknown, dropping publish to %s", subtopic)
             return
@@ -248,8 +260,12 @@ class MpptBleGateway:
             elif msg_type == MSG_DEVICE_INFO:
                 m = mppt_pb2.DeviceInfo()
                 m.ParseFromString(payload)
-                log.info("DeviceInfo: hw_version=%d fw=%d type=%s",
-                         m.hw_version, m.firmware_version, m.device_type)
+                log.info(
+                    "DeviceInfo: hw_version=%d fw=%d type=%s",
+                    m.hw_version,
+                    m.firmware_version,
+                    m.device_type,
+                )
                 # Serial is operator-configured via --serial; DeviceInfo is
                 # published as-is so Node-RED gets hw/fw/voltage metadata.
                 self._publish("info", payload, retain=True, qos=1)
@@ -280,22 +296,26 @@ class MpptBleGateway:
         summary.CopyFrom(m)
         summary.ClearField("daily_logs")
         summary.ClearField("monthly_logs")
-        self._publish("datalog/summary", summary.SerializeToString(),
-                      retain=True, qos=1)
+        if m.recorded_days > 0 or m.days_with_lvd > 0 or m.total_ah_charge_mah > 0:
+            self._publish(
+                "datalog/summary", summary.SerializeToString(), retain=True, qos=1
+            )
 
         if m.daily_logs:
             daily = mppt_pb2.DataloggerPayload()
             daily.timestamp = m.timestamp
             daily.daily_logs.extend(m.daily_logs)
-            self._publish("datalog/daily", daily.SerializeToString(),
-                          retain=True, qos=1)
+            self._publish(
+                "datalog/daily", daily.SerializeToString(), retain=True, qos=1
+            )
 
         if m.monthly_logs:
             monthly = mppt_pb2.DataloggerPayload()
             monthly.timestamp = m.timestamp
             monthly.monthly_logs.extend(m.monthly_logs)
-            self._publish("datalog/monthly", monthly.SerializeToString(),
-                          retain=True, qos=1)
+            self._publish(
+                "datalog/monthly", monthly.SerializeToString(), retain=True, qos=1
+            )
 
     def _on_notify(self, handle, data: bytearray):
         result = self._reassembler.feed(bytes(data))
@@ -329,8 +349,7 @@ class MpptBleGateway:
         log.info("Connecting to %s...", address)
 
         async with BleakClient(
-            address,
-            disconnected_callback=self._on_ble_disconnected
+            address, disconnected_callback=self._on_ble_disconnected
         ) as client:
             self._client = client
 
@@ -338,21 +357,27 @@ class MpptBleGateway:
             # Default is 23 bytes / 20 usable which is far too small.
             try:
                 # 1. On Linux/BlueZ, accessing 'services' triggers discovery and MTU sync
-                _ = client.services 
-                
+                _ = client.services
+
                 # Give BlueZ a moment to propagate the MTU property to DBus
                 await asyncio.sleep(1.0)
 
                 # 2. Call _acquire_mtu() to sync negotiated value from DBus.
-                # If this succeeds, Bleak sets its internal _mtu_size, 
+                # If this succeeds, Bleak sets its internal _mtu_size,
                 # which solves the UserWarning for subsequent accesses.
                 if hasattr(client, "_acquire_mtu"):
                     await client._acquire_mtu()
-                
-                log.info("Connected to %s, MTU=%d (Payload=%d)", 
-                         address, client.mtu_size, client.mtu_size - 3)
+
+                log.info(
+                    "Connected to %s, MTU=%d (Payload=%d)",
+                    address,
+                    client.mtu_size,
+                    client.mtu_size - 3,
+                )
             except Exception as e:
-                log.warning("MTU sync/discovery failed (%s), using MTU=%d", e, client.mtu_size)
+                log.warning(
+                    "MTU sync/discovery failed (%s), using MTU=%d", e, client.mtu_size
+                )
 
             await client.start_notify(TX_UUID, self._on_notify)
 
@@ -374,7 +399,9 @@ class MpptBleGateway:
                         self._cmd_queue.get(), timeout=1.0
                     )
                     log.info("Forwarding CMD (%d B) to ESP32", len(cmd_bytes))
-                    for chunk in build_framed_packet(MSG_CMD, cmd_bytes, mtu=actual_mtu):
+                    for chunk in build_framed_packet(
+                        MSG_CMD, cmd_bytes, mtu=actual_mtu
+                    ):
                         await client.write_gatt_char(RX_UUID, chunk, response=False)
                         await asyncio.sleep(CMD_WRITE_DELAY)
                 except asyncio.TimeoutError:
@@ -391,31 +418,35 @@ class MpptBleGateway:
 
 # ── Entry point ────────────────────────────────────────────────────────────────
 
+
 async def main_loop():
     parser = argparse.ArgumentParser(description="MPPT BLE-to-MQTT gateway")
-    parser.add_argument("--broker",  default="localhost",
-                        help="MQTT broker host")
-    parser.add_argument("--port",    default=1883, type=int,
-                        help="MQTT broker port")
-    parser.add_argument("--zone",    default="default",
-                        help="MQTT topic zone segment")
-    parser.add_argument("--gateway", default="auto",
-                        help="Gateway ID (default: hostname)")
-    parser.add_argument("--serial",  default=None,
-                        help="Device serial number e.g. 0503-18 (required for MQTT topics)")
-    parser.add_argument("--esp32",   default=None,
-                        help="ESP32 BLE address (skip scan if known)")
+    parser.add_argument("--broker", default="localhost", help="MQTT broker host")
+    parser.add_argument("--port", default=1883, type=int, help="MQTT broker port")
+    parser.add_argument("--zone", default="default", help="MQTT topic zone segment")
+    parser.add_argument(
+        "--gateway", default="auto", help="Gateway ID (default: hostname)"
+    )
+    parser.add_argument(
+        "--serial",
+        default=None,
+        help="Device serial number e.g. 0503-18 (required for MQTT topics)",
+    )
+    parser.add_argument(
+        "--esp32", default=None, help="ESP32 BLE address (skip scan if known)"
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)-7s %(message)s"
+        level=logging.INFO, format="%(asctime)s %(levelname)-7s %(message)s"
     )
 
     if not args.serial:
-        log.warning("No --serial provided. MQTT publishes will be dropped until "
-                    "a DeviceInfo message is received (which no longer carries serial). "
-                    "Pass --serial <MMSS-MO> to fix this.")
+        log.warning(
+            "No --serial provided. MQTT publishes will be dropped until "
+            "a DeviceInfo message is received (which no longer carries serial). "
+            "Pass --serial <MMSS-MO> to fix this."
+        )
 
     gw = MpptBleGateway(
         broker=args.broker,
@@ -429,9 +460,14 @@ async def main_loop():
     if args.esp32:
         gw._known_address = args.esp32
 
-    log.info("Gateway %s | zone=%s | serial=%s | broker=%s:%d",
-             gw.gateway_id, gw.zone, gw._serial or "unknown",
-             gw.broker, gw.port)
+    log.info(
+        "Gateway %s | zone=%s | serial=%s | broker=%s:%d",
+        gw.gateway_id,
+        gw.zone,
+        gw._serial or "unknown",
+        gw.broker,
+        gw.port,
+    )
 
     try:
         while True:

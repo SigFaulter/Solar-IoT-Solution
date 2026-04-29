@@ -115,7 +115,7 @@ static void publish_all(MqttClient              &mqtt,
     }
 
     if (have_tele && tele.hw_version == 3) {
-        const uint32_t CURRENT_MASK = tele.to_bitmask();
+        const uint32_t CURRENT_MASK = tele.fault_flags.to_bitmask();
         if (CURRENT_MASK != g_last_fault_mask) {
             // We publish if there is ANY fault, OR if there WAS a fault and now there isn't (to
             // clear the retained message).
