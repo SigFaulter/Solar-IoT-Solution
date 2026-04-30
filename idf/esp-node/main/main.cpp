@@ -133,25 +133,35 @@ static void main_loop_task(void *arg)
 
 extern "C" void app_main(void)
 {
+    int rc;
+
+    /* Initialize NVS — it is used to store PHY calibration data */
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ret = nvs_flash_erase();
-        if (ret != ESP_OK) ESP_LOGE(TAG, "NVS erase failed: %d", ret);
+        ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
+    ESP_ERROR_CHECK(ret);
+
+    ret = nimble_port_init();
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Operation failed with error %d", ret);
+        ESP_LOGE(tag, "Failed to init nimble %d ", ret);
+        return;
     }
 
+    ble_hs_cfg.reset_cb = bleprph_on_reset;
+    ble_hs_cfg.sync_cb = bleprph_on_sync;
+    ble_hs_cfg.gatts_register_cb = gatt_svr_register_cb;
+    ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
+
+    ble_hs_cfg.sm_io_cap = CONFIG_EXAMPLE_IO_TYPE;
     /* Power management: 80 MHz max, 10 MHz min, light sleep enabled */
-    /*
     esp_pm_config_t pm = {
         .max_freq_mhz      = 80,
         .min_freq_mhz      = 10,
         .light_sleep_enable = true,
     };
     ESP_ERROR_CHECK(esp_pm_configure(&pm));
-    */
 
     /* WDT: 10 s timeout, panic on trigger */
     esp_task_wdt_config_t wdt = {
@@ -159,6 +169,7 @@ extern "C" void app_main(void)
         .idle_core_mask = 0,
         .trigger_panic = true,
     };
+
     /* Ignore error - WDT may not be enabled in sdkconfig */
     esp_task_wdt_reconfigure(&wdt);
 
@@ -183,12 +194,6 @@ extern "C" void app_main(void)
     mppt_reassembler_reset(&s_rx_asm);
     ble_gatt_set_rx_cb(on_rx);
 
-    /* Init GATT service and start NimBLE host */
-    ret = nimble_port_init();
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "nimble_port_init failed: %d", ret);
-    }
-    ble_gatt_init();
     nimble_port_freertos_init(ble_host_task);
 
     xTaskCreate(main_loop_task, "mppt_loop", 4096, NULL, 5, NULL);

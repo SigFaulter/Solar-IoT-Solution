@@ -27,14 +27,23 @@ static uint8_t   s_own_addr_type;
 
 /* ---------- GATT access callback ---------- */
 
+// 3. In gatt_access_cb(), replace direct om access with ble_hs_mbuf_to_flat
 static int gatt_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                            struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
     if (ctxt->op != BLE_GATT_ACCESS_OP_WRITE_CHR) return 0;
-    if (s_rx_cb) s_rx_cb(ctxt->om->om_data, ctxt->om->om_len);
+    if (!s_rx_cb) return 0;
+
+    uint8_t buf[512];
+    uint16_t len = sizeof(buf);
+    int rc = ble_hs_mbuf_to_flat(ctxt->om, buf, sizeof(buf), &len);
+    if (rc != 0) {
+        ESP_LOGE(TAG, "mbuf_to_flat failed: %d", rc);
+        return rc;
+    }
+    s_rx_cb(buf, len);
     return 0;
 }
-
 /* ---------- GATT service table ---------- */
 
 static const struct ble_gatt_chr_def s_chrs[] = {
@@ -115,31 +124,12 @@ static int gap_event_cb(struct ble_gap_event *event, void *arg)
 /* Called by NimBLE host when stack is synced - forward decl */
 static void on_sync(void);
 
-/* ---------- Public API ---------- */
-
-void ble_gatt_init(void)
-{
-    int rc;
-
-    /* These are often initialized by nimble_port_init or not needed to be called twice */
-    // ble_svc_gap_init();
-    // ble_svc_gatt_init();
-
-    rc = ble_gatts_count_cfg(s_svcs);
-    if (rc != 0) {
-        ESP_LOGE(TAG, "ble_gatts_count_cfg failed; rc=%d", rc);
-    }
-    rc = ble_gatts_add_svcs(s_svcs);
-    if (rc != 0) {
-        ESP_LOGE(TAG, "ble_gatts_add_svcs failed; rc=%d", rc);
-    }
-
-    ble_svc_gap_device_name_set("MPPT-Gateway");
-    ble_hs_cfg.sync_cb = on_sync;
-}
 
 static void on_sync(void)
 {
+    int rc;
+    rc = ble_hs_util_ensure_addr(0);
+    assert(rc == 0);
     ble_hs_id_infer_auto(0, &s_own_addr_type);
     ble_gatt_advertise();
 }
@@ -170,5 +160,3 @@ void ble_gatt_advertise(void)
 uint16_t ble_gatt_conn_handle(void) { return s_conn_handle; }
 bool     ble_gatt_subscribed(void)  { return s_subscribed; }
 uint16_t ble_gatt_tx_handle(void)   { return s_tx_handle; }
-
-void ble_gatt_set_rx_cb(ble_rx_cb_t cb) { s_rx_cb = cb; }

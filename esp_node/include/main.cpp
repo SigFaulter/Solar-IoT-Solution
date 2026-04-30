@@ -339,6 +339,8 @@ void setup() {
 }
 
 void loop() {
+    setCpuFrequencyMhz(80);
+
     // Initialize Watchdog
     esp_task_wdt_init(10, true);
     esp_task_wdt_add(NULL);

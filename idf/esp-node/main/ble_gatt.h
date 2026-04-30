@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
+#include "host/util/util.h"
 #include "host/ble_hs.h"
 
 #ifdef __cplusplus
