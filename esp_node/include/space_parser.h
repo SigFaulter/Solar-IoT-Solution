@@ -125,7 +125,7 @@ struct StateFlags {
 };
 
 struct EepromLogEntry {
-    uint8_t    index;
+    uint16_t   index;
     uint8_t    vbat_max_mv;
     uint8_t    vbat_min_mv;
     uint16_t   ah_charge_mah;
@@ -134,10 +134,10 @@ struct EepromLogEntry {
     uint8_t    vpv_min_mv;
     uint8_t    il_max_ma;
     uint8_t    ipv_max_ma;
-    float      soc_pct;
+    uint8_t    soc_pct;
     int8_t     ext_temp_max_c;
     int8_t     ext_temp_min_c;
-    uint8_t    nightlen_min;
+    uint32_t   nightlength_min;
     StateFlags state_flags;
 };
 
@@ -161,7 +161,7 @@ struct SpaceTelemetry {
     uint32_t pv_target_mv;
     uint16_t pwm_counts;
     uint16_t nightlength_min;
-    uint16_t avg_nightlength;
+    uint16_t avg_nightlength_min;
     uint32_t led_voltage_mv;
     uint32_t led_current_ma10;
     uint16_t led_power_w;
@@ -205,10 +205,10 @@ struct EepromData {
     uint16_t device_identifier;
     uint16_t days_with_lvd;
     uint8_t  months_without_full_charge;
-    float    total_ah_charge_mah;
-    float    total_ah_load_mah;
+    uint32_t total_ah_charge_mah;
+    uint32_t total_ah_load_mah;
     uint16_t num_days;
-    float    avg_morning_soc_pct;
+    uint16_t avg_morning_soc_pct;
     
     uint8_t        daily_count;
     EepromLogEntry daily_logs[EEPROM_DAILY_MAX_BLOCKS];

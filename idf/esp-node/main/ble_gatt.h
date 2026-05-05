@@ -1,15 +1,13 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
-#include "host/util/util.h"
-#include "host/ble_hs.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Called once after nimble_port_init(); registers GATT service and sets sync_cb */
-void ble_gatt_init(void);
+/* Called after nimble_port_init(); registers GATT services */
+void ble_gatt_init(uint8_t own_addr_type);
 
 /* Start advertising; safe to call repeatedly (stops first) */
 void ble_gatt_advertise(void);

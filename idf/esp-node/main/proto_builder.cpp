@@ -17,10 +17,10 @@ bool encode_log_entries(pb_ostream_t *stream, const pb_field_t *field,
     le.ah_load_mah = e.ah_load_mah;
     le.il_max_ma = e.il_max_ma;
     le.ipv_max_ma = e.ipv_max_ma;
-    le.soc_pct = e.soc_pct;
+    le.soc_pct = static_cast<uint32_t>(e.soc_pct);
     le.ext_temp_max_c = e.ext_temp_max_c;
     le.ext_temp_min_c = e.ext_temp_min_c;
-    le.nightlength_min = e.nightlen_min;
+    le.nightlength_min = e.nightlength_min;
     le.state_flags = e.state_flags.to_bitmask();
     if (!pb_encode_tag_for_field(stream, field))
       return false;
@@ -58,7 +58,6 @@ uint32_t make_tele_flags(const SpaceTelemetry &t) {
     f |= (1u << 7);
   if (t.dali_active)
     f |= (1u << 8);
-  f |= (static_cast<uint32_t>(t.hw_version & 0x03) << 9);
   return f;
 }
 
@@ -75,7 +74,7 @@ mppt_Telemetry build_telemetry(const SpaceTelemetry &t, uint32_t ts) {
   mppt_Telemetry msg = mppt_Telemetry_init_zero;
   msg.timestamp = ts;
   msg.battery_voltage_mv = t.battery_voltage_mv;
-  msg.battery_soc_pct = static_cast<float>(t.battery_soc_pct);
+  msg.battery_soc_pct = t.battery_soc_pct;
   msg.charge_current_ma10 = t.charge_current_ma10;
   msg.charge_power_w = t.charge_power_w;
   msg.end_of_charge_voltage_mv = t.bat_threshold_mv;
@@ -91,7 +90,7 @@ mppt_Telemetry build_telemetry(const SpaceTelemetry &t, uint32_t ts) {
   msg.pv_voltage_mv = t.pv_voltage_mv;
   msg.pv_target_voltage_mv = t.pv_target_mv;
   msg.time_since_dusk_min = t.nightlength_min;
-  msg.average_length_min = t.avg_nightlength;
+  msg.average_length_min = t.avg_nightlength_min;
   msg.led_voltage_mv = t.led_voltage_mv;
   msg.led_current_ma10 = t.led_current_ma10;
   msg.led_power_w = t.led_power_w;

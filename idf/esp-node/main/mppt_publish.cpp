@@ -141,7 +141,7 @@ static bool encode_log_entries_cb(pb_ostream_t *stream, const pb_field_t *field,
         le.soc_pct        = e->soc_pct;
         le.ext_temp_max_c = e->ext_temp_max_c;
         le.ext_temp_min_c = e->ext_temp_min_c;
-        le.nightlength_min = e->nightlen_min;
+        le.nightlength_min = e->nightlength_min;
         le.state_flags    = e->state_flags.to_bitmask();
         if (!pb_encode_tag_for_field(stream, field)) return false;
         if (!pb_encode_submessage(stream, mppt_LogEntry_fields, &le)) return false;

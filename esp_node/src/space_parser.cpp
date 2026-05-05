@@ -80,7 +80,7 @@ bool parse_space_line(const char *line, SpaceTelemetry &out) {
       out.nightlength_min = (uint16_t)val;
       break;
     case FIELD_AVG_NIGHTLENGTH:
-      out.avg_nightlength = (uint16_t)val;
+      out.avg_nightlength_min = (uint16_t)val;
       break;
     case FIELD_LED_VOLTAGE_MV:
       out.led_voltage_mv = val;
@@ -230,10 +230,10 @@ bool parse_eeprom_line(const char *line, EepromData &out) {
     out.months_without_full_charge = s[2];
     // s[3] = datalog_type
     uint16_t morning_soc_sum = u16be(s, 4);
-    out.total_ah_charge_mah = static_cast<float>(u32be(s, 6));
-    out.total_ah_load_mah = static_cast<float>(u32be(s, 10));
+    out.total_ah_charge_mah = u32be(s, 6);
+    out.total_ah_load_mah = u32be(s, 10);
     out.num_days = u16be(s, 14);
-    out.avg_morning_soc_pct = static_cast<float>(morning_soc_sum);
+    out.avg_morning_soc_pct = morning_soc_sum;
   }
 
   // Daily log entries
@@ -315,7 +315,7 @@ bool parse_eeprom_line(const char *line, EepromData &out) {
          out.capacity_ah, out.lvd_voltage_mv, out.lvd_current_mv,
          out.evening_minutes, out.morning_minutes, out.night_threshold_mv);
   printf("[DEBUG] Datalogger: %d days, %d daily logs, %d monthly logs, "
-         "TotalChg=%.1fAh\n",
+         "TotalChg=%umAh\n",
          out.num_days, out.daily_count, out.monthly_count,
          out.total_ah_charge_mah);
 
