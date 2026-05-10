@@ -6,11 +6,14 @@
 extern "C" {
 #endif
 
-/* Called after nimble_port_init(); registers GATT services */
-void ble_gatt_init(uint8_t own_addr_type);
+/* Initialize BLE stack and GATT services */
+void ble_gatt_init(void);
 
-/* Start advertising; safe to call repeatedly (stops first) */
-void ble_gatt_advertise(void);
+/* Start NimBLE host task */
+void ble_gatt_start(void);
+
+/* Start advertising */
+void ble_gatt_advertise(uint8_t own_addr_type);
 
 /* Current connection handle; BLE_HS_CONN_HANDLE_NONE if disconnected */
 uint16_t ble_gatt_conn_handle(void);

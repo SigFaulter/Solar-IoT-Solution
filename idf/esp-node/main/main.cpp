@@ -7,17 +7,11 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "nimble/nimble_port.h"
-#include "nimble/nimble_port_freertos.h"
-#include "host/ble_hs.h"
-#include "host/util/util.h"
-#include "services/gap/ble_svc_gap.h"
-#include "store/config/ble_store_config.h"
-
 #include "ble_gatt.h"
 #include "mppt_ble.h"
 #include "mppt_publish.h"
 #include "space_parser.h"
+#include "host/ble_hs.h"
 
 static const char *TAG = "MAIN";
 
@@ -26,48 +20,13 @@ static const char *TAG = "MAIN";
 #define EEPROM_INTERVAL_MS  300000U
 
 /* ---------- Device state ---------- */
-static SpaceTelemetry g_tele   = {0};
-static EepromData     g_eeprom = {0};
-static bool           g_tele_ok   = false;
-static bool           g_eeprom_ok = false;
-static uint8_t        g_hw_version = 0;
-static uint8_t        g_own_addr_type;
+static SpaceTelemetry g_tele       = {0};
+static EepromData     g_eeprom     = {0};
+static bool           g_tele_ok    = false;
+static bool           g_eeprom_ok  = false;
+static uint8_t        g_hw_version = 3;
 
-/* ---------- NimBLE callbacks ---------- */
-
-static void ble_on_sync(void)
-{
-    int rc = ble_hs_util_ensure_addr(0);
-    assert(rc == 0);
-
-    rc = ble_hs_id_infer_auto(0, &g_own_addr_type);
-    if (rc != 0) {
-        ESP_LOGE(TAG, "Error determining address type; rc=%d", rc);
-        return;
-    }
-
-    uint8_t addr_val[6] = {0};
-    rc = ble_hs_id_copy_addr(g_own_addr_type, addr_val, NULL);
-    ESP_LOGI(TAG, "Device Address: %02x:%02x:%02x:%02x:%02x:%02x",
-             addr_val[5], addr_val[4], addr_val[3], addr_val[2], addr_val[1], addr_val[0]);
-
-    ble_gatt_init(g_own_addr_type);
-    ble_gatt_advertise();
-}
-
-static void ble_on_reset(int reason)
-{
-    ESP_LOGE(TAG, "Resetting BLE state; reason=%d", reason);
-}
-
-static void ble_host_task(void *arg)
-{
-    ESP_LOGI(TAG, "BLE Host Task Started");
-    nimble_port_run();
-    nimble_port_freertos_deinit();
-}
-
-/* ---------- Data Polling (Stubs) ---------- */
+/* ---------- Data Polling (Mocks) ---------- */
 
 static void repoll_telemetry(void)
 {
@@ -165,12 +124,8 @@ extern "C" void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
-    /* Initialize NimBLE */
-    ESP_ERROR_CHECK(nimble_port_init());
-
-    ble_hs_cfg.reset_cb = ble_on_reset;
-    ble_hs_cfg.sync_cb = ble_on_sync;
-    ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
+    /* Initialize BLE Stack */
+    ble_gatt_init();
 
     /* Power management & WDT */
     esp_pm_config_t pm = {
@@ -195,8 +150,6 @@ extern "C" void app_main(void)
         g_hw_version = ((g_eeprom.device_identifier & 0xFF) == 0x52) ? 2 : 3;
     } else if (g_tele_ok) {
         g_hw_version = g_tele.hw_version;
-    } else {
-        g_hw_version = 3;
     }
     g_tele.hw_version = g_hw_version;
 
@@ -205,7 +158,9 @@ extern "C" void app_main(void)
     mppt_reassembler_reset(&s_rx_asm);
     ble_gatt_set_rx_cb(on_ble_rx);
 
-    /* Start Tasks */
-    nimble_port_freertos_init(ble_host_task);
+    /* Start BLE */
+    ble_gatt_start();
+
+    /* Start Main Loop */
     xTaskCreate(main_loop_task, "mppt_loop", 4096, NULL, 5, NULL);
 }

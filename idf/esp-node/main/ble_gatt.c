@@ -1,12 +1,16 @@
 #include "ble_gatt.h"
 #include <string.h>
 #include "esp_log.h"
+#include "nimble/nimble_port.h"
+#include "nimble/nimble_port_freertos.h"
 #include "host/ble_hs.h"
 #include "host/ble_uuid.h"
 #include "host/ble_gap.h"
 #include "host/ble_gatt.h"
+#include "host/util/util.h"
 #include "services/gap/ble_svc_gap.h"
 #include "services/gatt/ble_svc_gatt.h"
+#include "store/config/ble_store_config.h"
 
 static const char *TAG = "BLE_GATT";
 
@@ -26,6 +30,11 @@ static uint16_t s_tx_handle;
 static bool s_subscribed;
 static ble_rx_cb_t s_rx_cb;
 static uint8_t s_own_addr_type;
+
+/* ---------- Forward Declarations ---------- */
+static void ble_on_sync(void);
+static void ble_on_reset(int reason);
+static void ble_host_task(void *arg);
 
 /* ---------- GATT access callback ---------- */
 
@@ -89,7 +98,7 @@ static int gap_event_cb(struct ble_gap_event *event, void *arg)
             };
             ble_gap_update_params(s_conn_handle, &upd);
         } else {
-            ble_gatt_advertise();
+            ble_gatt_advertise(s_own_addr_type);
         }
         return 0;
 
@@ -97,7 +106,7 @@ static int gap_event_cb(struct ble_gap_event *event, void *arg)
         ESP_LOGI(TAG, "Disconnected reason=%d", event->disconnect.reason);
         s_conn_handle = BLE_HS_CONN_HANDLE_NONE;
         s_subscribed = false;
-        ble_gatt_advertise();
+        ble_gatt_advertise(s_own_addr_type);
         return 0;
 
     case BLE_GAP_EVENT_SUBSCRIBE:
@@ -114,8 +123,44 @@ static int gap_event_cb(struct ble_gap_event *event, void *arg)
     return 0;
 }
 
-void ble_gatt_advertise(void)
+/* ---------- NimBLE callbacks ---------- */
+
+static void ble_on_sync(void)
 {
+    int rc = ble_hs_util_ensure_addr(0);
+    assert(rc == 0);
+
+    rc = ble_hs_id_infer_auto(0, &s_own_addr_type);
+    if (rc != 0) {
+        ESP_LOGE(TAG, "Error determining address type; rc=%d", rc);
+        return;
+    }
+
+    uint8_t addr_val[6] = {0};
+    rc = ble_hs_id_copy_addr(s_own_addr_type, addr_val, NULL);
+    ESP_LOGI(TAG, "Device Address: %02x:%02x:%02x:%02x:%02x:%02x",
+             addr_val[5], addr_val[4], addr_val[3], addr_val[2], addr_val[1], addr_val[0]);
+
+    ble_gatt_advertise(s_own_addr_type);
+}
+
+static void ble_on_reset(int reason)
+{
+    ESP_LOGE(TAG, "Resetting BLE state; reason=%d", reason);
+}
+
+static void ble_host_task(void *arg)
+{
+    ESP_LOGI(TAG, "BLE Host Task Started");
+    nimble_port_run();
+    nimble_port_freertos_deinit();
+}
+
+/* ---------- Public API ---------- */
+
+void ble_gatt_advertise(uint8_t own_addr_type)
+{
+    s_own_addr_type = own_addr_type;
     struct ble_gap_adv_params adv_params = {
         .conn_mode = BLE_GAP_CONN_MODE_UND,
         .disc_mode = BLE_GAP_DISC_MODE_GEN,
@@ -125,17 +170,29 @@ void ble_gatt_advertise(void)
 
     struct ble_hs_adv_fields fields = {0};
     fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
-    fields.name = (const uint8_t *)"MPPT-Gateway";
+    fields.name = (const uint8_t *)"MPPT-Node";
     fields.name_len = strlen((const char *)fields.name);
     fields.name_is_complete = 1;
 
-    ble_gap_adv_set_fields(&fields);
-    ble_gap_adv_start(s_own_addr_type, NULL, BLE_HS_FOREVER, &adv_params, gap_event_cb, NULL);
+    int rc = ble_gap_adv_set_fields(&fields);
+    if (rc != 0) {
+        ESP_LOGE(TAG, "error setting advertisement data; rc=%d", rc);
+        return;
+    }
+
+    rc = ble_gap_adv_start(s_own_addr_type, NULL, BLE_HS_FOREVER, &adv_params, gap_event_cb, NULL);
+    if (rc != 0) {
+        ESP_LOGE(TAG, "error enabling advertisement; rc=%d", rc);
+    }
 }
 
-void ble_gatt_init(uint8_t own_addr_type)
+void ble_gatt_init(void)
 {
-    s_own_addr_type = own_addr_type;
+    ESP_ERROR_CHECK(nimble_port_init());
+
+    ble_hs_cfg.reset_cb = ble_on_reset;
+    ble_hs_cfg.sync_cb = ble_on_sync;
+    ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
 
     ble_svc_gap_init();
     ble_svc_gatt_init();
@@ -145,6 +202,11 @@ void ble_gatt_init(uint8_t own_addr_type)
 
     rc = ble_gatts_add_svcs(s_svcs);
     assert(rc == 0);
+}
+
+void ble_gatt_start(void)
+{
+    nimble_port_freertos_init(ble_host_task);
 }
 
 uint16_t ble_gatt_conn_handle(void) { return s_conn_handle; }
