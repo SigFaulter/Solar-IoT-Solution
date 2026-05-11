@@ -1,11 +1,10 @@
 #pragma once
+
 #include <stdint.h>
 #include <stdbool.h>
-#include "space_parser.h"  /* SpaceTelemetry, EepromData */
+#include "space_parser.h"
+#include "eeprom_parser.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /*
  * All publish functions read from state set by publish_init().
@@ -24,7 +23,3 @@ void publish_init(SpaceTelemetry *tele, EepromData *eeprom,
 
 /* Decode and handle an inbound ControlCommand proto, send ACK */
 void handle_command(const uint8_t *data, uint16_t len);
-
-#ifdef __cplusplus
-}
-#endif

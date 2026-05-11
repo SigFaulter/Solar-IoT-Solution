@@ -1,10 +1,12 @@
 set(srcs
-    "main.cpp"
+    "main.c"
     "ble_gatt.c"
     "mppt_ble.c"
-    "mppt_publish.cpp"
-    "space_parser.cpp"
-    "proto_builder.cpp"
+    "mppt_publish.c"
+    "space_parser.c"
+    "eeprom_parser.c"
+    "proto_builder.c"
+    "settings_parser.c"
     "mppt.pb.c"
 )
 
@@ -15,8 +17,3 @@ idf_component_register(
 )
 
 target_compile_options(${COMPONENT_LIB} PUBLIC -Wno-error=missing-field-initializers)
-# All C++ files use C++17
-set_source_files_properties(
-    main.cpp space_parser.cpp proto_builder.cpp mppt_publish.cpp
-    PROPERTIES COMPILE_FLAGS "-std=gnu++17"
-)

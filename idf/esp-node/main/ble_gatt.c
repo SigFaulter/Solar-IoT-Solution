@@ -10,7 +10,7 @@
 #include "host/util/util.h"
 #include "services/gap/ble_svc_gap.h"
 #include "services/gatt/ble_svc_gatt.h"
-#include "store/config/ble_store_config.h"
+#include "store/ram/ble_store_ram.h"
 
 static const char *TAG = "BLE_GATT";
 
@@ -30,6 +30,7 @@ static uint16_t s_tx_handle;
 static bool s_subscribed;
 static ble_rx_cb_t s_rx_cb;
 static uint8_t s_own_addr_type;
+static char s_device_name[32];
 
 /* ---------- Forward Declarations ---------- */
 static void ble_on_sync(void);
@@ -57,29 +58,65 @@ static int gatt_access_cb(uint16_t conn_handle, uint16_t attr_handle,
 
 /* ---------- GATT service table ---------- */
 
+static const struct ble_gatt_chr_def s_chrs[] = {
+    {
+        /* Characteristic: RX (Write) */
+        .uuid = &s_rx_uuid.u,
+        .access_cb = gatt_access_cb,
+        .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_WRITE_NO_RSP,
+    },
+    {
+        /* Characteristic: TX (Notify) */
+        .uuid = &s_tx_uuid.u,
+        .access_cb = gatt_access_cb,
+        .flags = BLE_GATT_CHR_F_NOTIFY,
+        .val_handle = &s_tx_handle,
+    },
+    { 0 }
+};
+
 static const struct ble_gatt_svc_def s_svcs[] = {
     {
+        /* Service: Nordic UART */
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
         .uuid = &s_svc_uuid.u,
-        .characteristics = (struct ble_gatt_chr_def[]) {
-            {
-                .uuid = &s_rx_uuid.u,
-                .access_cb = gatt_access_cb,
-                .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_WRITE_NO_RSP,
-            },
-            {
-                .uuid = &s_tx_uuid.u,
-                .access_cb = NULL,
-                .flags = BLE_GATT_CHR_F_NOTIFY,
-                .val_handle = &s_tx_handle,
-            },
-            { 0 }
-        },
+        .characteristics = s_chrs,
     },
     { 0 },
 };
 
 /* ---------- GAP event handler ---------- */
+
+static void
+ble_gatt_on_register(struct ble_gatt_register_ctxt *ctxt, void *arg)
+{
+    char buf[BLE_UUID_STR_LEN];
+
+    switch (ctxt->op) {
+    case BLE_GATT_REGISTER_OP_SVC:
+        ESP_LOGI(TAG, "registered service %s with handle=%d",
+                 ble_uuid_to_str(ctxt->svc.svc_def->uuid, buf),
+                 ctxt->svc.handle);
+        break;
+
+    case BLE_GATT_REGISTER_OP_CHR:
+        ESP_LOGI(TAG, "registered characteristic %s with "
+                 "def_handle=%d val_handle=%d",
+                 ble_uuid_to_str(ctxt->chr.chr_def->uuid, buf),
+                 ctxt->chr.def_handle,
+                 ctxt->chr.val_handle);
+        break;
+
+    case BLE_GATT_REGISTER_OP_DSC:
+        ESP_LOGI(TAG, "registered descriptor %s with handle=%d",
+                 ble_uuid_to_str(ctxt->dsc.dsc_def->uuid, buf),
+                 ctxt->dsc.handle);
+        break;
+
+    default:
+        break;
+    }
+}
 
 static int gap_event_cb(struct ble_gap_event *event, void *arg)
 {
@@ -170,8 +207,8 @@ void ble_gatt_advertise(uint8_t own_addr_type)
 
     struct ble_hs_adv_fields fields = {0};
     fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
-    fields.name = (const uint8_t *)"MPPT-Node";
-    fields.name_len = strlen((const char *)fields.name);
+    fields.name = (const uint8_t *)s_device_name;
+    fields.name_len = strlen(s_device_name);
     fields.name_is_complete = 1;
 
     int rc = ble_gap_adv_set_fields(&fields);
@@ -188,25 +225,49 @@ void ble_gatt_advertise(uint8_t own_addr_type)
 
 void ble_gatt_init(void)
 {
-    ESP_ERROR_CHECK(nimble_port_init());
+    int rc;
 
+    rc = nimble_port_init();
+    if (rc != 0) {
+        ESP_LOGE(TAG, "nimble_port_init failed: %d", rc);
+        return;
+    }
+
+    /* Initialize the NimBLE host configuration. */
     ble_hs_cfg.reset_cb = ble_on_reset;
     ble_hs_cfg.sync_cb = ble_on_sync;
+    ble_hs_cfg.gatts_register_cb = ble_gatt_on_register;
     ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
 
     ble_svc_gap_init();
     ble_svc_gatt_init();
 
-    int rc = ble_gatts_count_cfg(s_svcs);
-    assert(rc == 0);
+    rc = ble_gatts_count_cfg(s_svcs);
+    if (rc != 0) {
+        ESP_LOGE(TAG, "ble_gatts_count_cfg failed: %d", rc);
+        return;
+    }
 
     rc = ble_gatts_add_svcs(s_svcs);
-    assert(rc == 0);
+    if (rc != 0) {
+        ESP_LOGE(TAG, "ble_gatts_add_svcs failed: %d", rc);
+        return;
+    }
+
+    /* Initialize the NimBLE store. */
+    ble_store_ram_init();
 }
 
 void ble_gatt_start(void)
 {
     nimble_port_freertos_init(ble_host_task);
+}
+
+void ble_gatt_set_name(const char *name)
+{
+    strncpy(s_device_name, name, sizeof(s_device_name) - 1);
+    s_device_name[sizeof(s_device_name) - 1] = '\0';
+    ble_svc_gap_device_name_set(s_device_name);
 }
 
 uint16_t ble_gatt_conn_handle(void) { return s_conn_handle; }

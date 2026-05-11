@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstddef>
+#include <stddef.h>
 // Protocol field counts
 //
 // Version is detected by counting semicolons before parsing

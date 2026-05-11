@@ -440,7 +440,16 @@ void setup() {
   // Stamp cached version into tele/eeprom so proto_builder uses it
   g_tele.hw_version = g_hw_version;
 
-  NimBLEDevice::init("MPPT-Gateway");
+  char ble_name[32];
+  if (g_eeprom_ok) {
+    snprintf(ble_name, sizeof(ble_name), "%02d%02d-%02d",
+             bcd_to_dec(g_eeprom.sn_hi), bcd_to_dec(g_eeprom.sn_lo),
+             bcd_to_dec(g_eeprom.prod_year_lo));
+  } else {
+    strncpy(ble_name, "Unknown-SN", sizeof(ble_name));
+  }
+
+  NimBLEDevice::init(ble_name);
   NimBLEDevice::setMTU(247); // TODO: play with MTU further, could be increased
 
   // High TX power only during advertising, reduced on connect

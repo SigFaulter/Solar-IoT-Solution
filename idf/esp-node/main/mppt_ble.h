@@ -2,9 +2,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* Message type tags - must match rpi_ble_gateway.py */
 typedef enum {
@@ -51,7 +48,3 @@ void mppt_reassembler_reset(mppt_reassembler_t *r);
  * Caller reads r->msg_type, r->buf+3, r->payload_len.
  */
 bool mppt_reassembler_feed(mppt_reassembler_t *r, const uint8_t *data, uint16_t len);
-
-#ifdef __cplusplus
-}
-#endif
