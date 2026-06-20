@@ -5,10 +5,6 @@
 
 using json = nlohmann::json;
 
-static inline auto v16(uint16_t mv) -> double {
-    return mv_to_v(static_cast<uint32_t>(mv));
-}
-
 auto build_info_json(const EepromSettings &settings, JsonScalingFormat /*scaling_format*/)
     -> nlohmann::json {
     return {
@@ -25,9 +21,6 @@ auto build_telemetry_json(const PhocosTelemetry &t,
                           JsonScalingFormat      scaling_format) -> nlohmann::json {
     nlohmann::json j;
 
-    double v_div = (scaling_format == JsonScalingFormat::SCALED) ? 1000.0 : 1.0;
-    double a_div = (scaling_format == JsonScalingFormat::SCALED) ? 1000.0 : 1.0;
-
     j["general"] = {
         {"timestamp", static_cast<long long>(ts)},
         {"serial_number", settings.serial_number},
@@ -39,11 +32,14 @@ auto build_telemetry_json(const PhocosTelemetry &t,
     };
 
     j["battery"] = {
-        {"voltage_v", static_cast<double>(t.battery_voltage_mv) / v_div},
+        {"voltage_mv", static_cast<double>(t.battery_voltage_mv)},
         {"soc_pct", t.battery_soc_pct},
-        {"charge_current_a", static_cast<double>(t.charge_current_ma10 * 10) / a_div},
+        {"charge_current_ma",
+         (scaling_format == JsonScalingFormat::SCALED)
+             ? static_cast<double>(t.charge_current_ma10 * 10)
+             : static_cast<double>(t.charge_current_ma10)},
         {"charge_power_w", t.charge_power_w},
-        {"end_of_charge_voltage_v", static_cast<double>(t.battery_threshold_mv) / v_div},
+        {"end_of_charge_voltage_mv", static_cast<double>(t.battery_threshold_mv)},
         {"charge_mode", charge_mode_to_string(charge_mode_from_state(t.charge_state_raw))},
         {"is_night", t.charge_flags.is_night},
         {"operation_days", t.bat_op_days},
@@ -59,13 +55,16 @@ auto build_telemetry_json(const PhocosTelemetry &t,
         {"lvd_active", t.load_flags.lvd_active},
         {"user_disconnect", t.load_flags.user_disconnect},
         {"over_current", t.load_flags.over_current},
-        {"current_a", static_cast<double>(t.load_current_ma10 * 10) / a_div},
+        {"current_ma",
+         (scaling_format == JsonScalingFormat::SCALED)
+             ? static_cast<double>(t.load_current_ma10 * 10)
+             : static_cast<double>(t.load_current_ma10)},
         {"power_w", t.load_power_w},
     };
 
     j["pv"] = {
-        {"voltage_v", static_cast<double>(t.pv_voltage_mv) / v_div},
-        {"target_voltage_v", static_cast<double>(t.pv_target_mv) / v_div},
+        {"voltage_mv", static_cast<double>(t.pv_voltage_mv)},
+        {"target_voltage_mv", static_cast<double>(t.pv_target_mv)},
         {"detected", static_cast<bool>(t.pv_detected)},
     };
 
@@ -75,8 +74,11 @@ auto build_telemetry_json(const PhocosTelemetry &t,
     };
 
     j["led"] = {
-        {"voltage_v", static_cast<double>(t.led_voltage_mv) / v_div},
-        {"current_a", static_cast<double>(t.led_current_ma10 * 10) / a_div},
+        {"voltage_mv", static_cast<double>(t.led_voltage_mv)},
+        {"current_ma",
+         (scaling_format == JsonScalingFormat::SCALED)
+             ? static_cast<double>(t.led_current_ma10 * 10)
+             : static_cast<double>(t.led_current_ma10)},
         {"power_w", t.led_power_w},
         {"status", led_status_name(t.led_status)},
         {"dali_active", static_cast<bool>(t.dali_active)},
@@ -106,32 +108,56 @@ static auto log_entries_to_json(const LogEntry   *entries,
                                 JsonScalingFormat scaling_format) -> nlohmann::json {
     nlohmann::json arr = nlohmann::json::array();
 
-    double v_div = (scaling_format == JsonScalingFormat::SCALED) ? 1000.0 : 1.0;
-    double a_div = (scaling_format == JsonScalingFormat::SCALED) ? 1000.0 : 1.0;
-
     for (std::size_t i = 0; i < count; ++i) {
         const auto &e   = entries[i];
-        float       soc = is_monthly ? static_cast<float>(e.soc_pct)
-                                     : (static_cast<float>(e.soc_pct) * 6.6F >= 99.0F
+        float       soc = is_monthly ? (static_cast<float>(e.soc_pct) * 6.6F >= 99.0F
                                             ? 100.0F
-                                            : static_cast<float>(e.soc_pct) * 6.6F);
+                                            : static_cast<float>(e.soc_pct) * 6.6F)
+                                     : static_cast<float>(e.soc_pct);
 
         arr.emplace_back(nlohmann::json{
             {index_key, e.index},
-            {"vbat_min_v", static_cast<double>(e.vbat_min_mv) * (is_monthly ? 100.0 : 1.0) / v_div},
-            {"vbat_max_v", static_cast<double>(e.vbat_max_mv) * (is_monthly ? 100.0 : 1.0) / v_div},
-            {"ah_charge",
-             static_cast<double>(e.ah_charge_mah) * (is_monthly ? 1000.0 : 100.0) / 1000.0},
-            {"ah_load",
-             static_cast<double>(e.ah_load_mah) * (is_monthly ? 1000.0 : 100.0) / 1000.0},
-            {"vpv_max_v", static_cast<double>(e.vpv_max_mv) * 500.0 / v_div},
-            {"vpv_min_v", static_cast<double>(e.vpv_min_mv) * 500.0 / v_div},
-            {"il_max_a", static_cast<double>(e.il_max_ma) * 500.0 / a_div},
-            {"ipv_max_a", static_cast<double>(e.ipv_max_ma) * 500.0 / a_div},
-            {"soc_pct", round1(static_cast<double>(soc))},
+            {"vbat_min_mv",
+             (scaling_format == JsonScalingFormat::SCALED)
+                 ? static_cast<double>(e.vbat_min_mv) * 100.0
+                 : static_cast<double>(e.vbat_min_mv)},
+            {"vbat_max_mv",
+             (scaling_format == JsonScalingFormat::SCALED)
+                 ? static_cast<double>(e.vbat_max_mv) * 100.0
+                 : static_cast<double>(e.vbat_max_mv)},
+            {"ah_charge_mah",
+             (scaling_format == JsonScalingFormat::SCALED)
+                 ? static_cast<double>(e.ah_charge_mah) * 100.0
+                 : static_cast<double>(e.ah_charge_mah)},
+            {"ah_load_mah",
+             (scaling_format == JsonScalingFormat::SCALED)
+                 ? static_cast<double>(e.ah_load_mah) * 100.0
+                 : static_cast<double>(e.ah_load_mah)},
+            {"vpv_max_mv",
+             (scaling_format == JsonScalingFormat::SCALED)
+                 ? static_cast<double>(e.vpv_max_mv) * 500.0
+                 : static_cast<double>(e.vpv_max_mv)},
+            {"vpv_min_mv",
+             (scaling_format == JsonScalingFormat::SCALED)
+                 ? static_cast<double>(e.vpv_min_mv) * 500.0
+                 : static_cast<double>(e.vpv_min_mv)},
+            {"il_max_ma",
+             (scaling_format == JsonScalingFormat::SCALED)
+                 ? static_cast<double>(e.il_max_ma) * 500.0
+                 : static_cast<double>(e.il_max_ma)},
+            {"ipv_max_ma",
+             (scaling_format == JsonScalingFormat::SCALED)
+                 ? static_cast<double>(e.ipv_max_ma) * 500.0
+                 : static_cast<double>(e.ipv_max_ma)},
+            {"soc_pct",
+             (scaling_format == JsonScalingFormat::SCALED) ? round1(static_cast<double>(soc))
+                                                           : static_cast<double>(e.soc_pct)},
             {"ext_temp_max_c", e.ext_temp_max_c},
             {"ext_temp_min_c", e.ext_temp_min_c},
-            {"nightlength_min", static_cast<uint16_t>(e.nightlength_min) * 10},
+            {"nightlength_min",
+             (scaling_format == JsonScalingFormat::SCALED)
+                 ? static_cast<uint16_t>(e.nightlength_min) * 10
+                 : static_cast<uint16_t>(e.nightlength_min)},
             {"flags",
              {
                  {"ld", e.state.load_disconnect},
@@ -156,18 +182,16 @@ auto build_datalogger_json(const EepromSettings    &settings,
                            const MonthlyLogBuffer  &months,
                            std::time_t              ts,
                            JsonScalingFormat        scaling_format) -> nlohmann::json {
-    double v_div = (scaling_format == JsonScalingFormat::SCALED) ? 1000.0 : 1.0;
-
     return {
         {"timestamp", static_cast<long long>(ts)},
         {"eeprom",
          {
              {"battery_type", settings.battery_type},
              {"capacity_ah", settings.settings.capacity_ah},
-             {"lvd_voltage_v", static_cast<double>(settings.settings.lvd_voltage_mv) / v_div},
-             {"boost_voltage_v", static_cast<double>(settings.boost_mv) / v_div},
-             {"float_voltage_v", static_cast<double>(settings.float_mv) / v_div},
-             {"equalization_voltage_v", static_cast<double>(settings.equalization_mv) / v_div},
+             {"lvd_voltage_mv", static_cast<double>(settings.settings.lvd_voltage_mv)},
+             {"boost_voltage_mv", static_cast<double>(settings.boost_mv)},
+             {"float_voltage_mv", static_cast<double>(settings.float_mv)},
+             {"equalization_voltage_mv", static_cast<double>(settings.equalization_mv)},
              {"night_mode", settings.night_mode},
              {"dimming_pct", settings.settings.dimming_pct},
              {"base_dimming_pct", settings.settings.base_dimming_pct},
@@ -185,14 +209,8 @@ auto build_datalogger_json(const EepromSettings    &settings,
                                                 static_cast<double>(s.num_days))
                                              : 0.0))
                   : static_cast<double>(s.avg_morning_soc_pct)},
-             {"total_ah_charge",
-              (scaling_format == JsonScalingFormat::SCALED)
-                  ? static_cast<double>(s.total_ah_charge) / 10.0
-                  : static_cast<double>(s.total_ah_charge)},
-             {"total_ah_load",
-              (scaling_format == JsonScalingFormat::SCALED)
-                  ? static_cast<double>(s.total_ah_load) / 10.0
-                  : static_cast<double>(s.total_ah_load)},
+             {"total_ah_charge_ah", static_cast<double>(s.total_ah_charge)},
+             {"total_ah_load_ah", static_cast<double>(s.total_ah_load)},
              {"daily",
               log_entries_to_json(days.entries.data(), days.count, "day", false, scaling_format)},
              {"monthly",
