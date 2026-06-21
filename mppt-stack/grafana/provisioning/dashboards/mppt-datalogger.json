@@ -23,10 +23,10 @@
       "icon": "dashboard",
       "tags": [],
       "targetBlank": false,
-      "title": "🖼️ Datalogger",
-      "tooltip": "Historical daily/monthly logs",
+      "title": "📡 Live Telemetry",
+      "tooltip": "Back to live dashboard",
       "type": "link",
-      "url": "/d/mppt-datalogger/mppt-solar-datalogger"
+      "url": "/d/mppt-solar"
     }
   ],
   "panels": [
@@ -90,7 +90,7 @@
                   {
                     "targetBlank": false,
                     "title": "View Datalogger",
-                    "url": "/d/mppt-datalogger?var-serial_number=${__value.text}"
+                    "url": "/d/mppt-datalogger?var-serial=${__value.text}"
                   }
                 ]
               }
@@ -359,7 +359,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "from(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) =>\n      r._field == \"battery_voltage_mv\" or r._field == \"soc_pct\" or\n      r._field == \"charge_power_w\" or r._field == \"pv_voltage_mv\" or\n      r._field == \"load_power_w\" or r._field == \"external_temp_c\")\n  |> group(columns: [\"serial_number\", \"_field\"])\n  |> last()\n  |> group()\n  |> pivot(rowKey: [\"serial_number\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {serial_number: \"Serial\", battery_voltage_mv: \"V Bat\", soc_pct: \"SOC %\", pv_voltage_mv: \"V PV\", charge_power_w: \"Chg W\", load_power_w: \"Load W\", external_temp_c: \"Temp °C\"})\n  |> keep(columns: [\"Serial\", \"V Bat\", \"SOC %\", \"V PV\", \"Chg W\", \"Load W\", \"Temp °C\"])",
+          "query": "from(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) =>\n      r._field == \"battery_voltage_mv\" or r._field == \"soc_pct\" or\n      r._field == \"charge_power_w\" or r._field == \"pv_voltage_mv\" or\n      r._field == \"load_power_w\" or r._field == \"external_temp_c\")\n  |> group(columns: [\"serial\", \"_field\"])\n  |> last()\n  |> group()\n  |> pivot(rowKey: [\"serial\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {serial: \"Serial\", battery_voltage_mv: \"V Bat\", soc_pct: \"SOC %\", pv_voltage_mv: \"V PV\", charge_power_w: \"Chg W\", load_power_w: \"Load W\", external_temp_c: \"Temp °C\"})\n  |> keep(columns: [\"Serial\", \"V Bat\", \"SOC %\", \"V PV\", \"Chg W\", \"Load W\", \"Temp °C\"])",
           "refId": "A"
         },
         {
@@ -367,7 +367,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "from(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"charge_mode\")\n  |> group(columns: [\"serial_number\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({Serial: r.serial_number, Mode: r._value}))\n  |> keep(columns: [\"Serial\", \"Mode\"])",
+          "query": "from(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"charge_mode\")\n  |> group(columns: [\"serial\", \"_field\"])\n  |> last()\n  |> group()\n  |> map(fn: (r) => ({Serial: r.serial, Mode: r._value}))\n  |> keep(columns: [\"Serial\", \"Mode\"])",
           "refId": "B"
         }
       ],
@@ -430,7 +430,7 @@
                   {
                     "targetBlank": false,
                     "title": "View Datalogger",
-                    "url": "/d/mppt-datalogger?var-serial_number=${__value.text}"
+                    "url": "/d/mppt-datalogger?var-serial=${__value.text}"
                   }
                 ]
               }
@@ -478,7 +478,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"faults\")\n  |> filter(fn: (r) => r._value == 1)\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> last()\n  |> map(fn: (r) => ({r with _field:\n      if r._field == \"battery_over_voltage\"   then \"Battery Over Voltage\"\n      else if r._field == \"pv_over_voltage\"   then \"PV Over Voltage\"\n      else if r._field == \"charge_over_current\" then \"Charge Over Current\"\n      else if r._field == \"lvd_active\"        then \"Battery Low (LVD)\"\n      else if r._field == \"over_discharge_current\" then \"Battery Over-Discharge\"\n      else if r._field == \"load_over_current\" then \"Load Over Current\"\n      else if r._field == \"battery_over_temp\" then \"Battery Over Temperature\"\n      else if r._field == \"battery_under_temp\" then \"Battery Under Temperature\"\n      else r._field\n  }))\n  |> group()\n  |> rename(columns: {serial_number: \"Serial\", _field: \"Alert\"})\n  |> keep(columns: [\"Serial\", \"Alert\"])",
+          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"faults\")\n  |> filter(fn: (r) => r._value == 1)\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> last()\n  |> map(fn: (r) => ({r with _field:\n      if r._field == \"battery_over_voltage\"   then \"Battery Over Voltage\"\n      else if r._field == \"pv_over_voltage\"   then \"PV Over Voltage\"\n      else if r._field == \"charge_over_current\" then \"Charge Over Current\"\n      else if r._field == \"lvd_active\"        then \"Battery Low (LVD)\"\n      else if r._field == \"over_discharge_current\" then \"Battery Over-Discharge\"\n      else if r._field == \"load_over_current\" then \"Load Over Current\"\n      else if r._field == \"battery_over_temp\" then \"Battery Over Temperature\"\n      else if r._field == \"battery_under_temp\" then \"Battery Under Temperature\"\n      else r._field\n  }))\n  |> group()\n  |> rename(columns: {serial: \"Serial\", _field: \"Alert\"})\n  |> keep(columns: [\"Serial\", \"Alert\"])",
           "refId": "A"
         }
       ],
@@ -569,7 +569,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"soc_pct\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"soc_pct\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
@@ -647,7 +647,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"battery_voltage_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"battery_voltage_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
@@ -715,7 +715,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"pv_voltage_mv\" or r._field == \"pv_target_voltage_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> last()\n  |> map(fn: (r) => ({r with _field:\n      if r._field == \"pv_voltage_mv\" then \"PV Voltage\"\n      else \"MPPT Target\"\n  }))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"pv_voltage_mv\" or r._field == \"pv_target_voltage_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> last()\n  |> map(fn: (r) => ({r with _field:\n      if r._field == \"pv_voltage_mv\" then \"PV Voltage\"\n      else \"MPPT Target\"\n  }))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
@@ -783,7 +783,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"charge_power_w\" or r._field == \"load_power_w\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> last()\n  |> map(fn: (r) => ({r with _field:\n      if r._field == \"charge_power_w\" then \"Charge W\"\n      else \"Load W\"\n  }))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"charge_power_w\" or r._field == \"load_power_w\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> last()\n  |> map(fn: (r) => ({r with _field:\n      if r._field == \"charge_power_w\" then \"Charge W\"\n      else \"Load W\"\n  }))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
@@ -847,7 +847,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"load_power_w\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"load_power_w\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
@@ -919,7 +919,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"external_temp_c\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"external_temp_c\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
@@ -1057,7 +1057,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"battery_voltage_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: \"Battery V\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"battery_voltage_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: \"Battery V\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
@@ -1193,7 +1193,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"soc_pct\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: \"SOC %\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"soc_pct\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: \"SOC %\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
@@ -1335,7 +1335,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"pv_voltage_mv\" or r._field == \"pv_target_voltage_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"pv_voltage_mv\" then \"PV Voltage\" else \"MPPT Target\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"pv_voltage_mv\" or r._field == \"pv_target_voltage_mv\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"pv_voltage_mv\" then \"PV Voltage\" else \"MPPT Target\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
@@ -1463,7 +1463,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"charge_current_ma\" or r._field == \"load_current_ma\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"charge_current_ma\" then \"Charge A\" else \"Load A\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"charge_current_ma\" or r._field == \"load_current_ma\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"charge_current_ma\" then \"Charge A\" else \"Load A\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
@@ -1601,7 +1601,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"internal_temp_c\" or r._field == \"external_temp_c\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"internal_temp_c\" then \"Internal °C\" else \"External °C\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"internal_temp_c\" or r._field == \"external_temp_c\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"internal_temp_c\" then \"Internal °C\" else \"External °C\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
@@ -1729,7 +1729,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"charge_power_w\" or r._field == \"load_power_w\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"charge_power_w\" then \"Charge W\" else \"Load W\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"charge_power_w\" or r._field == \"load_power_w\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"charge_power_w\" then \"Charge W\" else \"Load W\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
@@ -1863,7 +1863,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"led_voltage_mv\" or r._field == \"led_current_ma\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"led_voltage_mv\" then \"LED V\" else \"LED A\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\")\n  |> filter(fn: (r) => r._field == \"led_voltage_mv\" or r._field == \"led_current_ma\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"led_voltage_mv\" then \"LED V\" else \"LED A\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
           "refId": "A"
         }
       ],
@@ -1945,7 +1945,7 @@
                   {
                     "targetBlank": false,
                     "title": "View Datalogger",
-                    "url": "/d/mppt-datalogger?var-serial_number=${__value.text}"
+                    "url": "/d/mppt-datalogger?var-serial=${__value.text}"
                   }
                 ]
               }
@@ -1993,7 +1993,7 @@
             "type": "influxdb",
             "uid": "influxdb-solar"
           },
-          "query": "_s = \"${serial_number}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"faults\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial_number == _s)\n  |> difference(nonNegative: true)\n  |> filter(fn: (r) => r._value > 0)\n  |> map(fn: (r) => ({r with _field:\n      if r._field == \"battery_over_voltage\"   then \"Battery Over Voltage\"\n      else if r._field == \"pv_over_voltage\"         then \"PV Over Voltage\"\n      else if r._field == \"charge_over_current\"     then \"Charge Over Current\"\n      else if r._field == \"lvd_active\"              then \"Battery Low (LVD)\"\n      else if r._field == \"over_discharge_current\"  then \"Battery Over-Discharge\"\n      else if r._field == \"load_over_current\"       then \"Load Over Current\"\n      else if r._field == \"battery_over_temp\"       then \"Battery Over Temperature\"\n      else if r._field == \"battery_under_temp\"      then \"Battery Under Temperature\"\n      else r._field\n  }))\n  |> group()\n  |> rename(columns: {serial_number: \"Serial\", _field: \"Fault\", _time: \"Time\"})\n  |> keep(columns: [\"Time\", \"Serial\", \"Fault\"])\n  |> sort(columns: [\"Time\"], desc: true)",
+          "query": "_s = \"${serial}\"\nfrom(bucket: \"solar\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"faults\")\n  |> filter(fn: (r) => _s == \"$__all\" or _s == \"\" or r.serial == _s)\n  |> difference(nonNegative: true)\n  |> filter(fn: (r) => r._value > 0)\n  |> map(fn: (r) => ({r with _field:\n      if r._field == \"battery_over_voltage\"   then \"Battery Over Voltage\"\n      else if r._field == \"pv_over_voltage\"         then \"PV Over Voltage\"\n      else if r._field == \"charge_over_current\"     then \"Charge Over Current\"\n      else if r._field == \"lvd_active\"              then \"Battery Low (LVD)\"\n      else if r._field == \"over_discharge_current\"  then \"Battery Over-Discharge\"\n      else if r._field == \"load_over_current\"       then \"Load Over Current\"\n      else if r._field == \"battery_over_temp\"       then \"Battery Over Temperature\"\n      else if r._field == \"battery_under_temp\"      then \"Battery Under Temperature\"\n      else r._field\n  }))\n  |> group()\n  |> rename(columns: {serial: \"Serial\", _field: \"Fault\", _time: \"Time\"})\n  |> keep(columns: [\"Time\", \"Serial\", \"Fault\"])\n  |> sort(columns: [\"Time\"], desc: true)",
           "refId": "A"
         }
       ],
@@ -2024,13 +2024,13 @@
           "type": "influxdb",
           "uid": "influxdb-solar"
         },
-        "definition": "import \"influxdata/influxdb/schema\"\nschema.tagValues(bucket: \"solar\", tag: \"serial_number\")",
+        "definition": "import \"influxdata/influxdb/schema\"\nschema.tagValues(bucket: \"solar\", tag: \"serial\")",
         "includeAll": true,
         "label": "Device",
         "multi": true,
-        "name": "serial_number",
+        "name": "serial",
         "options": [],
-        "query": "import \"influxdata/influxdb/schema\"\nschema.tagValues(bucket: \"solar\", tag: \"serial_number\")",
+        "query": "import \"influxdata/influxdb/schema\"\nschema.tagValues(bucket: \"solar\", tag: \"serial\")",
         "refresh": 2,
         "regex": "",
         "regexApplyTo": "value",
@@ -2065,8 +2065,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "☀️ MPPT Solar - Live Telemetry",
-  "uid": "mppt-solar",
+  "title": "📊 MPPT Solar - Datalogger",
+  "uid": "mppt-datalogger",
   "version": 4,
   "weekStart": ""
 }
